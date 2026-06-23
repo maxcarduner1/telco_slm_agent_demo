@@ -1,0 +1,50 @@
+bundle:
+  name: otel-slm-agent-demo
+
+workspace:
+  profile: fevm-cmegdemos
+
+resources:
+  jobs:
+    data_setup:
+      name: "otel-demo-data-setup"
+      environments:
+        - environment_key: serverless_faker
+          spec:
+            client: "5"
+            dependencies:
+              - faker
+        - environment_key: serverless_default
+          spec:
+            client: "5"
+        - environment_key: serverless_vs
+          spec:
+            client: "5"
+            dependencies:
+              - databricks-vectorsearch
+      tasks:
+        - task_key: generate_kpi_data
+          notebook_task:
+            notebook_path: ./notebooks/01_generate_kpi_data.py
+          environment_key: serverless_faker
+
+        - task_key: generate_documents
+          notebook_task:
+            notebook_path: ./notebooks/02_generate_documents.py
+          depends_on:
+            - task_key: generate_kpi_data
+          environment_key: serverless_default
+
+        - task_key: parse_documents
+          notebook_task:
+            notebook_path: ./notebooks/03_parse_documents.py
+          depends_on:
+            - task_key: generate_documents
+          environment_key: serverless_default
+
+        - task_key: create_vs_indexes
+          notebook_task:
+            notebook_path: ./notebooks/04_create_vs_indexes.py
+          depends_on:
+            - task_key: parse_documents
+          environment_key: serverless_vs
