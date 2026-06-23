@@ -26,6 +26,24 @@ vsc = VectorSearchClient()
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Enable Change Data Feed on source tables
+# MAGIC Required for Vector Search Delta Sync indexes.
+
+# COMMAND ----------
+
+chunk_tables = [
+    f"`{catalog}`.`{schema}`.`telco_docs_runbooks_chunks`",
+    f"`{catalog}`.`{schema}`.`telco_docs_standards_chunks`",
+    f"`{catalog}`.`{schema}`.`telco_docs_incidents_chunks`",
+]
+
+for table in chunk_tables:
+    spark.sql(f"ALTER TABLE {table} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")
+    print(f"  CDF enabled: {table}")
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Find or create VS endpoint
 
 # COMMAND ----------
