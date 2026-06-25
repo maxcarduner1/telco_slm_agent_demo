@@ -85,9 +85,9 @@ Demonstrate an agentic network operations assistant ("Telco GPT") that combines 
 | RAG (Runbooks) | Sub-domain retrieval | Vector Search + GPU Serving | OTel-Embedding-335M + OTel-Reranker-0.6B + OTel-LLM-1.2B-IT |
 | RAG (Standards) | Sub-domain retrieval | Vector Search + GPU Serving | Same OTel stack |
 | RAG (Incidents) | Sub-domain retrieval | Vector Search + GPU Serving | Same OTel stack |
-| Embedding | Chunk vectorization | Model Serving (GPU_SMALL) | OTel-Embedding-335M (HF: farbodtavakkoli) |
-| Reranking | Cross-encoder scoring | Model Serving (GPU_SMALL) | OTel-Reranker-0.6B |
-| Generation (sub-agents) | Domain-grounded answers | Model Serving (GPU_SMALL) | OTel-LLM-1.2B-IT (abstention-trained) |
+| Embedding | Chunk vectorization | Model Serving (GPU_MEDIUM) | `otel-embedding2-300m` (existing, READY) |
+| Reranking | Cross-encoder scoring | Model Serving (MULTIGPU_MEDIUM) | `otel-reranker-06b` (existing, READY) |
+| Generation (sub-agents) | Domain-grounded answers | Model Serving (GPU_SMALL) | `otel-llm-1-2b-it` (existing, READY) |
 | Observability | Tracing & Evaluation | MLflow 3.0 | Custom telco scorers |
 
 ---
@@ -347,8 +347,8 @@ Return to supervisor
 | 4 | Parse documents with `ai_parse_document` | Extract text/tables from generated PDFs → write parsed content to Delta tables | `databricks-ai-functions` |
 | 5 | Chunk and embed parsed documents | Split parsed text into chunks (512 tok / 64 overlap), store in chunk tables | `databricks-vector-search` |
 | 6 | Create Metric View | Define `network_health_metrics` with consistent KPI definitions | `databricks-metric-views` |
-| 7 | Deploy OTel models | Register via MLflow, deploy all 3 on consolidated GPU_SMALL endpoint | `databricks-model-serving` |
-| 8 | Create Vector Search indexes | 3 indexes on shared VS endpoint using OTel-Embedding-335M | `databricks-vector-search` |
+| 7 | Verify OTel model endpoints | Endpoints already deployed: `otel-embedding2-300m`, `otel-reranker-06b`, `otel-llm-1-2b-it` | `databricks-model-serving` |
+| 8 | Create Vector Search indexes | 3 indexes on `demo_telco_vs_endpoint` using `otel-embedding2-300m` (**must run after step 7**) | `databricks-vector-search` |
 | 9 | Create Genie Space | Point at KPI tables + metric view, add instructions | `databricks-genie` |
 | 10 | Provision Lakebase autoscale project | `telco-slm-agent-memory` for conversation + user memory | `databricks-lakebase-autoscale` |
 
@@ -401,7 +401,7 @@ resources:
         - name: FRONTIER_MODEL_ENDPOINT
           value: "databricks-claude-sonnet-4"
         - name: OTEL_EMBEDDING_ENDPOINT
-          value: "otel-embedding-335m"
+          value: "otel-embedding2-300m"
         - name: OTEL_RERANKER_ENDPOINT
           value: "otel-reranker-06b"
         - name: OTEL_LLM_ENDPOINT
