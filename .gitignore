@@ -1,0 +1,10 @@
+node_modules/
+e2e-chatbot-app-next/node_modules/
+e2e-chatbot-app-next/.next/
+e2e-chatbot-app-next/dist/
+__pycache__/
+*.pyc
+.env
+
+# Reference diagram PDFs (not code)
+*.pdf

@@ -15,3 +15,15 @@ create a new architecture diagram for me to import into lucid chart so that I ca
 we absolutely want to leverage the recommended hugging face models for OTEL to power the SLMs that do all the RAG over various sub domain vs indexes but use a bigger frontier model for the supervisor, do this with langraph wrapped in our responseagent framework hosted on apps compute with long term and short term memory powered by lakebase. see https://github.com/databricks/app-templates/blob/main/agent-langgraph-advanced/README.md
 
 
+
+
+New add'l instructions:
+overall this needs to be self-contained and be able to deploy to other workspaces, so make sure to include the steps that provision in the otel endpoints and let's point to pre-generated docs in this repo
+
+use new ai search client instead of vector search
+
+I want to be able to compare the otel models vs generic reasoning models for everything other then the vector search embeddings, but compare on quality with benchmark and costs
+
+
+
+research distill framework and if I'm doing it or not with this setup

@@ -1,0 +1,35 @@
+command: ["python", "scripts/start_app.py"]
+
+env:
+  - name: CHAT_APP_PORT
+    value: "3000"
+  - name: API_PROXY
+    value: "http://localhost:8000/invocations"
+  - name: CHAT_PROXY_TIMEOUT_SECONDS
+    value: "300"
+  - name: MLFLOW_TRACKING_URI
+    value: "databricks"
+  - name: MLFLOW_REGISTRY_URI
+    value: "databricks-uc"
+  - name: MLFLOW_EXPERIMENT_ID
+    value: "2739016681902822"
+  - name: LAKEBASE_AUTOSCALING_PROJECT
+    value: "telco-slm-agent-memory"
+  - name: LAKEBASE_AUTOSCALING_BRANCH
+    value: "production"
+  - name: LAKEBASE_AGENT_MEMORY_SCHEMA
+    value: "agent_memory"
+  - name: LLM_ENDPOINT
+    value: "databricks-claude-sonnet-4"
+  - name: EMBEDDING_ENDPOINT
+    value: "otel-embedding2-300m"
+  - name: VS_ENDPOINT
+    value: "demo_telco_vs_endpoint"
+  - name: UC_CATALOG
+    value: "cmegdemos_catalog"
+  - name: UC_SCHEMA
+    value: "network_analytics_enablement"
+  - name: DATABRICKS_WAREHOUSE_ID
+    value: "7b65956f30d66feb"
+  - name: TASK_TIMEOUT_SECONDS
+    value: "300"

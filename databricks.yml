@@ -48,3 +48,51 @@ resources:
           depends_on:
             - task_key: parse_documents
           environment_key: serverless_vs
+
+        - task_key: create_uc_functions
+          notebook_task:
+            notebook_path: ./notebooks/05_create_uc_functions.py
+          depends_on:
+            - task_key: generate_kpi_data
+          environment_key: serverless_default
+
+        - task_key: provision_lakebase_app
+          notebook_task:
+            notebook_path: ./notebooks/07_provision_lakebase_app.py
+          environment_key: serverless_default
+
+  apps:
+    telco_agent:
+      name: "otel-telco-agent"
+      description: "Telco Network Analytics Agent powered by OTel SLMs + LangGraph"
+      source_code_path: ./
+      config:
+        command: ["uvicorn", "agent_app.server:app", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: "databricks"
+          - name: MLFLOW_REGISTRY_URI
+            value: "databricks-uc"
+          - name: MLFLOW_EXPERIMENT_ID
+            value: "2739016681902822"
+          - name: LAKEBASE_PROJECT
+            value: "telco-slm-agent-memory"
+          - name: LAKEBASE_BRANCH
+            value: "production"
+          - name: LAKEBASE_DATABASE
+            value: "agent_memory"
+          - name: LLM_ENDPOINT
+            value: "databricks-claude-sonnet-4"
+          - name: EMBEDDING_ENDPOINT
+            value: "otel-embedding2-300m"
+          - name: VS_ENDPOINT
+            value: "demo_telco_vs_endpoint"
+          - name: UC_CATALOG
+            value: "cmegdemos_catalog"
+          - name: UC_SCHEMA
+            value: "network_analytics_enablement"
+          - name: DATABRICKS_WAREHOUSE_ID
+            value: "7b65956f30d66feb"
+      permissions:
+        - user_name: "max.carduner@databricks.com"
+          level: "CAN_MANAGE"
