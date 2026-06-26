@@ -85,28 +85,34 @@ All RAG operations use HuggingFace OTel models (Apache 2.0, trained on 326K+ tel
 
 ```
 Otel_SLM_Agent_Demo/
-├── notebooks/                   # Data pipeline & infrastructure
-│   ├── 01_generate_kpi_data.py  # Synthetic network KPI data (50 sites, 6 regions, 90 days)
-│   ├── 02_generate_documents.py # LLM-generated telco PDFs (runbooks, specs, incidents)
-│   ├── 03_parse_documents.py    # PDF parsing with ai_parse_document()
-│   ├── 04_create_vs_indexes.py  # Vector Search indexes with OTel-Embedding-335M
-│   ├── 05_create_uc_functions.py# UC SQL functions as agent tools
-│   ├── 06_test_uc_functions.py  # Validate UC function outputs
+├── notebooks/                        # Data pipeline & infrastructure
+│   ├── 00_provision_endpoints.py     # Auto-provision VS + OTel endpoints (runs in parallel)
+│   ├── 01_generate_kpi_data.py       # Synthetic network KPI data (50 sites, 6 regions, 90 days)
+│   ├── 02_generate_documents.py      # Load telco docs from GitHub, fall back to Claude generation
+│   ├── 03_parse_documents.py         # Chunk documents for Vector Search
+│   ├── 04_create_vs_indexes.py       # Vector Search indexes with OTel-Embedding-335M
+│   ├── 05_create_uc_functions.py     # UC SQL functions as agent tools
+│   ├── 06_test_uc_functions.py       # Validate UC function outputs
 │   └── 07_provision_lakebase_app.py  # Lakebase memory setup
-├── agent_app/                   # LangGraph agent application
-│   ├── agent.py                 # ReAct agent with LangGraph + ResponseAgent
-│   ├── server.py                # FastAPI/uvicorn entry point
-│   ├── tools.py                 # UC function tools + RAG search tools
-│   ├── prompts.py               # TelcoGPT system prompt
-│   └── memory.py                # Lakebase checkpointing + long-term store
-├── e2e-chatbot-app-next/        # React + Express.js chat UI (full-stack)
+├── docs/                             # Pre-generated telco documents (committed to repo)
+│   ├── runbooks/                     # 10 operational runbooks
+│   ├── standards/                    # 5 standards summaries (3GPP, O-RAN)
+│   └── incidents/                    # 8 incident RCA reports
+├── agent_app/                        # LangGraph agent application
+│   ├── agent.py                      # ReAct agent with LangGraph + ResponseAgent
+│   ├── server.py                     # FastAPI/uvicorn entry point
+│   ├── tools.py                      # UC function tools + RAG search tools
+│   ├── prompts.py                    # TelcoGPT system prompt
+│   └── memory.py                     # Lakebase checkpointing + long-term store
+├── e2e-chatbot-app-next/             # React + Express.js chat UI (full-stack)
 ├── scripts/
-│   └── start_app.py             # Start the chat application
-├── databricks.yml               # DAB bundle (data setup job + app resource)
-├── app.yaml                     # Chat app runtime config
-├── pyproject.toml               # Python dependencies
-├── requirements.txt             # Additional runtime dependencies
-└── design_doc.md                # Full architecture & implementation guide
+│   ├── start_app.py                  # Start the chat application
+│   └── pull_docs_from_volume.sh      # Pull generated docs from UC Volume → docs/ for committing
+├── databricks.yml                    # DAB bundle (data setup job + app resource)
+├── app.yaml                          # Chat app runtime config
+├── pyproject.toml                    # Python dependencies
+├── requirements.txt                  # Additional runtime dependencies
+└── design_doc.md                     # Full architecture & implementation guide
 ```
 
 ---
@@ -116,18 +122,22 @@ Otel_SLM_Agent_Demo/
 - Databricks workspace with Unity Catalog enabled
 - Databricks CLI configured (`databricks configure --profile <your-profile>`)
 - Serverless compute enabled
-- GPU endpoint capacity for OTel model serving (`GPU_SMALL` recommended)
+- GPU endpoint capacity for OTel model serving (`GPU_SMALL`)
 - Lakebase (PostgreSQL autoscale) available in your workspace
 
-### Required Endpoints (provision before deployment)
+### Endpoints
 
-| Endpoint | Purpose |
-|----------|---------|
-| `otel-embedding2-300m` | Vector Search embedding model |
-| `otel-reranker-600m` | Reranking for RAG retrieval |
-| `otel-llm-1b-it` | Sub-agent generation model |
-| `databricks-claude-sonnet-4` | Supervisor / frontier model (PAYG) |
-| `demo_telco_vs_endpoint` | Vector Search endpoint |
+All OTel model serving endpoints and the Vector Search endpoint are **automatically provisioned** by `notebooks/00_provision_endpoints.py`, which runs as the first task in the data setup job (in parallel with the data pipeline). You do not need to create these manually.
+
+| Endpoint | How it's created |
+|----------|-----------------|
+| `demo_telco_vs_endpoint` | Auto — `00_provision_endpoints.py` |
+| `otel-embedding2-300m` | Auto — downloads OTel-Embedding-335M from HuggingFace, registers to UC, deploys GPU_SMALL |
+| `otel-reranker-600m` | Auto — downloads OTel-Reranker-0.6B from HuggingFace, registers to UC, deploys GPU_SMALL |
+| `otel-llm-1b-it` | Auto — downloads OTel-LLM-1.2B-IT from HuggingFace, registers to UC, deploys GPU_SMALL |
+| `databricks-claude-sonnet-4` | **Manual** — built-in PAYG endpoint; available in most workspaces automatically |
+
+**Supervisor model for workspaces without `databricks-claude-sonnet-4`:** Section 5 of `00_provision_endpoints.py` contains a placeholder to create an Anthropic external model endpoint wrapped with an AI Gateway. Set the `secret_scope` widget (pointing to a Databricks Secret holding your Anthropic API key) to activate it, then update `LLM_ENDPOINT` in `app.yaml` and `databricks.yml` to the gateway endpoint name.
 
 ---
 
@@ -161,13 +171,19 @@ databricks bundle deploy --profile <your-profile>
 databricks jobs run-now --job-name otel-demo-data-setup --profile <your-profile>
 ```
 
-This runs 7 sequential tasks:
-1. Generate synthetic KPI data (Delta tables)
-2. Generate telco documents (PDFs → UC Volume)
-3. Parse documents with `ai_parse_document()`
-4. Create Vector Search indexes
-5. Register UC SQL functions
-6. Provision Lakebase memory
+The job runs the following tasks. Tasks with no `depends_on` start immediately in parallel:
+
+| Task | Depends on | What it does |
+|------|-----------|--------------|
+| `provision_endpoints` | — | Creates VS endpoint + deploys OTel embedding/reranker/LLM models to GPU_SMALL; provisions external Claude gateway if configured |
+| `generate_kpi_data` | — | Generates 90-day synthetic KPI Delta tables (50 sites, 6 regions) |
+| `generate_documents` | `generate_kpi_data` | Loads 23 telco docs from GitHub repo; falls back to Claude generation if not found |
+| `parse_documents` | `generate_documents` | Chunks documents for Vector Search |
+| `create_vs_indexes` | `parse_documents` | Embeds chunks with OTel-Embedding-335M, creates 3 Delta Sync VS indexes |
+| `create_uc_functions` | `generate_kpi_data` | Registers 5 UC SQL functions as agent tools |
+| `provision_lakebase_app` | — | Provisions Lakebase PostgreSQL for agent memory; creates Databricks App |
+
+`provision_endpoints` and `provision_lakebase_app` run in parallel with the data pipeline at job start. By the time `create_vs_indexes` needs the VS endpoint and embedding model (~30–45 min in), both are ready.
 
 ### 4. Deploy and start the app
 
