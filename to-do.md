@@ -1,0 +1,1 @@
+- create deployment script of HF endpoints and vector search with check for if it exists

@@ -1,0 +1,173 @@
+ROOT CAUSE ANALYSIS REPORT
+
+RCA: Pacific Northwest 5G SA Registration Failures - February 2026
+
+INCIDENT IDENTIFICATION
+Incident ID: INC-2026-0215-001
+Severity Level: Critical (Severity 1)
+Service Affected: 5G Standalone (SA) Network Registration
+Geographic Scope: Pacific Northwest Region
+Incident Duration: 14 hours 23 minutes
+Start Time: February 15, 2026 06:45 PST
+End Time: February 15, 2026 21:08 PST
+
+EXECUTIVE SUMMARY
+
+On February 15, 2026, the Pacific Northwest region experienced widespread 5G Standalone network registration failures affecting approximately 2.3 million subscribers during peak usage hours. The incident resulted in complete service disruption for new 5G SA registrations and intermittent connectivity issues for existing sessions. Root cause analysis identified Access and Mobility Management Function (AMF) resource exhaustion due to insufficient capacity planning following recent subscriber migration from Non-Standalone (NSA) to Standalone architecture. The issue was resolved by scaling AMF instances from 4 to 8 and implementing automated load-based scaling policies.
+
+TIMELINE OF EVENTS
+
+Detection Phase:
+06:45 PST - Network Operations Center (NOC) receives first automated alerts indicating elevated 5G registration failure rates
+06:52 PST - Customer care reports surge in connectivity complaints from Pacific Northwest customers
+07:15 PST - NOC escalates to Severity 1 incident, activates emergency response team
+07:30 PST - Initial assessment confirms 5G SA registration success rate dropped to 12%
+
+Investigation Phase:
+07:45 PST - Core network team begins analysis of 5G SA components
+08:20 PST - AMF performance metrics show CPU utilization at 98% and memory at 95%
+08:35 PST - Analysis reveals AMF message queue backlog exceeding 50,000 pending requests
+09:10 PST - Correlation analysis confirms direct relationship between AMF overload and registration failures
+09:45 PST - Team identifies recent subscriber migration as contributing factor to increased AMF load
+
+Resolution Phase:
+10:15 PST - Decision made to implement emergency AMF scaling
+11:30 PST - Additional AMF instances provisioned and configured
+12:45 PST - Load balancing policies updated to distribute traffic across expanded AMF pool
+14:20 PST - Registration success rates begin improving, reaching 65%
+16:30 PST - Auto-scaling policies implemented for future load management
+18:45 PST - Registration success rates stabilize at 97%
+21:08 PST - Incident declared resolved, all KPIs within normal thresholds
+
+IMPACT ASSESSMENT
+
+Key Performance Indicators Affected:
+- 5G SA Registration Success Rate: Degraded from 99.2% to 12% (baseline: >98%)
+- Average Registration Time: Increased from 2.3 seconds to 47.8 seconds (baseline: <5 seconds)
+- AMF CPU Utilization: Peak at 98% (baseline: <70%)
+- AMF Memory Utilization: Peak at 95% (baseline: <80%)
+- Session Establishment Success Rate: Degraded to 23% (baseline: >97%)
+- Customer Care Call Volume: Increased by 340% above normal levels
+
+Customer Impact:
+- Total Affected Subscribers: 2,347,892
+- New Registration Failures: 1,892,445 attempts
+- Service Interruptions: 455,447 existing sessions
+- Geographic Coverage: 15 major metropolitan areas
+- Revenue Impact: Estimated $3.2 million in service credits and lost revenue
+- Customer Satisfaction Score: Decreased from 4.2 to 2.8 (5-point scale)
+
+Business Impact:
+- Emergency response team activation costs: $127,000
+- Infrastructure scaling costs: $89,000
+- Regulatory reporting requirements triggered
+- Media coverage and brand reputation impact
+
+ROOT CAUSE ANALYSIS
+
+Primary Root Cause Analysis Using 5-Whys Methodology:
+
+1. Why did 5G SA registration failures occur?
+   Answer: AMF instances became overloaded and could not process registration requests within acceptable timeframes.
+
+2. Why did AMF instances become overloaded?
+   Answer: The current AMF pool capacity (4 instances) was insufficient to handle the actual subscriber load during peak hours.
+
+3. Why was AMF pool capacity insufficient?
+   Answer: Capacity planning calculations were based on outdated subscriber projections that did not account for accelerated NSA to SA migration.
+
+4. Why were capacity planning calculations outdated?
+   Answer: The migration timeline was accelerated by 6 months due to enterprise customer demands, but infrastructure scaling was not adjusted accordingly.
+
+5. Why was infrastructure scaling not adjusted for the accelerated timeline?
+   Answer: Communication gap between marketing/sales teams driving migration and network engineering teams responsible for capacity planning.
+
+Contributing Factors:
+- Lack of real-time capacity monitoring and alerting thresholds
+- Absence of automated scaling policies for AMF resources
+- Insufficient load testing with realistic subscriber volumes
+- Manual provisioning processes causing delays in emergency scaling
+
+Secondary Analysis - Technical Factors:
+- AMF software version limitations in handling concurrent sessions
+- Suboptimal load balancing algorithm distribution
+- Database connection pool exhaustion during peak loads
+- Insufficient monitoring granularity for early warning detection
+
+CORRECTIVE ACTIONS TAKEN
+
+Immediate Actions (Completed):
+1. Scaled AMF instances from 4 to 8 active nodes
+2. Implemented emergency load balancing configuration
+3. Increased AMF memory allocation by 40%
+4. Activated additional database connection pools
+5. Deployed enhanced monitoring dashboards for real-time visibility
+
+Short-term Actions (Completed within 72 hours):
+1. Implemented automated AMF scaling policies based on CPU and memory thresholds
+2. Updated capacity planning models with current subscriber data
+3. Established direct communication channels between migration and engineering teams
+4. Created automated alerting for AMF queue depth and processing delays
+5. Conducted comprehensive load testing with projected subscriber volumes
+
+PREVENTIVE MEASURES AND RECOMMENDATIONS
+
+Technical Recommendations:
+1. Deploy predictive analytics for capacity forecasting based on subscriber growth trends
+2. Implement horizontal auto-scaling with minimum 6 AMF instances during peak hours
+3. Establish AMF performance baselines with 30% capacity buffer
+4. Deploy circuit breaker patterns to prevent cascade failures
+5. Implement advanced load balancing with health check integration
+
+Process Improvements:
+1. Establish mandatory cross-functional capacity review meetings for major migrations
+2. Create automated capacity impact assessments for subscriber migration projects
+3. Implement staged migration approach with capacity validation checkpoints
+4. Develop emergency scaling playbooks with pre-approved resource allocation
+5. Establish real-time capacity monitoring with proactive alerting
+
+Organizational Changes:
+1. Create dedicated Network Capacity Planning team with migration oversight
+2. Implement monthly capacity review meetings with all stakeholder teams
+3. Establish clear escalation procedures for capacity-related concerns
+4. Develop cross-training programs for AMF management and scaling procedures
+5. Create customer communication templates for service impact notifications
+
+Technology Investments:
+1. Upgrade to AMF software version with improved concurrent session handling
+2. Deploy AI-driven capacity optimization platform
+3. Implement cloud-native AMF deployment for elastic scaling
+4. Establish dedicated test environment for realistic load simulation
+5. Deploy advanced analytics platform for predictive maintenance
+
+LESSONS LEARNED
+
+Key Takeaways:
+1. Capacity planning must be tightly integrated with migration project timelines and adjusted for accelerated schedules
+2. Automated scaling policies are essential for handling unexpected load spikes in 5G SA environments
+3. Cross-functional communication is critical for successful large-scale network migrations
+4. Real-time monitoring with appropriate thresholds can significantly reduce incident detection time
+5. Emergency response procedures must include pre-approved resource scaling authority
+
+Technical Insights:
+1. AMF resource requirements scale non-linearly with subscriber count during peak registration periods
+2. Database connection pooling becomes critical bottleneck before CPU or memory limits
+3. Load balancing algorithms must account for AMF instance health and processing capacity
+4. Queue depth monitoring provides earlier warning than traditional CPU/memory metrics
+5. Automated testing with realistic subscriber behavior patterns is essential for capacity validation
+
+Process Improvements Identified:
+1. Migration impact assessments must include detailed capacity analysis
+2. Stakeholder communication protocols need enhancement for cross-functional projects
+3. Emergency response procedures require streamlining for faster resolution
+4. Customer communication during incidents needs improvement for transparency
+5. Post-incident review processes should include broader stakeholder participation
+
+CONCLUSION
+
+This incident highlighted critical gaps in capacity planning processes and cross-functional communication during major network migrations. The implemented corrective actions and preventive measures address both immediate technical issues and underlying process deficiencies. Continued monitoring of AMF performance and adherence to new capacity planning procedures will be essential for preventing similar incidents in future migration activities.
+
+Report Prepared By: Network Engineering Team
+Review Date: February 28, 2026
+Next Review: May 28, 2026
+Distribution: Executive Leadership, Network Operations, Engineering Teams, Customer Care

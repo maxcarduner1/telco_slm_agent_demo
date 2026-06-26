@@ -1,0 +1,242 @@
+TECHNICAL SUMMARY DOCUMENT
+
+3GPP TS 23.501: 5G SYSTEM ARCHITECTURE SPECIFICATION
+
+Document Reference: 3GPP TS 23.501 Version 17.10.0
+Release: Release 17
+Publication Date: March 2023
+Document Type: Technical Specification
+Classification: System Architecture and Services
+
+1. SCOPE AND APPLICABILITY
+
+This technical specification defines the 5G System (5GS) architecture and procedures for the 5G Core Network (5GC). The specification covers the overall system architecture, network function descriptions, service-based interfaces, and procedures for mobility management, session management, and quality of service provisioning.
+
+The specification applies to:
+- 5G Core Network implementations
+- Network Function (NF) vendors
+- Mobile Network Operators deploying 5G networks
+- Equipment manufacturers developing 5G-compliant systems
+
+2. KEY DEFINITIONS AND ACRONYMS
+
+2.1 Primary Definitions
+
+5G Core Network (5GC): The core network of the 5G System that provides connectivity and mobility management services.
+
+Network Function (NF): A processing function in a network that has defined functional behavior and interfaces.
+
+Service Based Interface (SBI): An interface between network functions using service-based architecture principles.
+
+PDU Session: An association between the UE and a Data Network that provides a PDU connectivity service.
+
+Network Slice: A logical network that provides specific network capabilities and network characteristics.
+
+2.2 Key Acronyms
+
+AMF - Access and Mobility Management Function
+SMF - Session Management Function  
+UPF - User Plane Function
+PCF - Policy Control Function
+UDM - Unified Data Management
+AUSF - Authentication Server Function
+NSSF - Network Slice Selection Function
+NEF - Network Exposure Function
+NRF - NF Repository Function
+SMSF - Short Message Service Function
+5QI - 5G QoS Identifier
+SUPI - Subscription Permanent Identifier
+GUTI - 5G Globally Unique Temporary Identifier
+
+3. TECHNICAL SPECIFICATIONS AND PARAMETERS
+
+3.1 Network Function Specifications
+
+3.1.1 Access and Mobility Management Function (AMF)
+
+Primary Functions:
+- Registration management
+- Connection management  
+- Mobility management
+- Access authentication and authorization
+- Security context management
+
+Key Parameters:
+- Maximum number of registered UEs: Implementation dependent (typically 1M-10M)
+- Registration timer T3512: 54 minutes (default)
+- Periodic registration update timer T3512: 3240 seconds (default)
+- Mobile reachable timer T3522: 12 seconds (default)
+
+Interface Specifications:
+- N1: Reference point between UE and AMF
+- N2: Reference point between RAN and AMF  
+- N8: Reference point between AMF and UDM
+- N11: Reference point between AMF and SMF
+- N14: Reference point between two AMFs
+
+3.1.2 Session Management Function (SMF)
+
+Primary Functions:
+- PDU session establishment, modification, and release
+- UE IP address allocation and management
+- DHCP functions
+- Traffic steering and routing
+- Charging data collection
+
+Key Parameters:
+- Maximum PDU sessions per UE: 256
+- PDU session establishment timer T3580: 15 seconds (default)
+- PDU session modification timer T3581: 15 seconds (default)
+- Session-AMBR: Up to 4 Gbps (implementation dependent)
+
+Interface Specifications:
+- N4: Reference point between SMF and UPF
+- N7: Reference point between SMF and PCF
+- N10: Reference point between SMF and UDM
+- N11: Reference point between SMF and AMF
+
+3.1.3 User Plane Function (UPF)
+
+Primary Functions:
+- Packet routing and forwarding
+- Traffic usage reporting
+- Quality of Service handling
+- Lawful intercept
+- Downlink packet buffering
+
+Key Parameters:
+- Maximum throughput: Implementation dependent (typically 1-100 Gbps)
+- Packet buffer size: Implementation dependent (typically 10-100 MB)
+- Maximum number of PDU sessions: Implementation dependent
+- Supported 5QI values: 1-9 (standardized), 128-254 (operator-specific)
+
+Interface Specifications:
+- N3: Reference point between RAN and UPF
+- N4: Reference point between SMF and UPF
+- N6: Reference point between UPF and Data Network
+- N9: Reference point between UPFs
+
+3.2 Quality of Service Framework
+
+3.2.1 5G QoS Identifier (5QI) Values
+
+Guaranteed Bit Rate (GBR) 5QI Values:
+- 5QI 1: Conversational Voice (100ms delay, 10^-2 error rate)
+- 5QI 2: Conversational Video (150ms delay, 10^-3 error rate)  
+- 5QI 3: Real Time Gaming (50ms delay, 10^-3 error rate)
+- 5QI 4: Non-Conversational Video (300ms delay, 10^-6 error rate)
+
+Non-GBR 5QI Values:
+- 5QI 5: IMS Signaling (100ms delay, 10^-6 error rate)
+- 5QI 6: Video (TCP-based, 300ms delay, 10^-6 error rate)
+- 5QI 7: Voice, Video, Interactive Gaming (100ms delay, 10^-3 error rate)
+- 5QI 8: Video (TCP-based, 300ms delay, 10^-6 error rate)
+- 5QI 9: Default bearer (300ms delay, 10^-6 error rate)
+
+3.2.2 QoS Flow Parameters
+
+Allocation and Retention Priority (ARP):
+- Priority Level: 1 (highest) to 15 (lowest)
+- Pre-emption Capability: MAY_PREEMPT or SHALL_NOT_PREEMPT
+- Pre-emption Vulnerability: PREEMPTABLE or NOT_PREEMPTABLE
+
+Guaranteed Flow Bit Rate (GFBR): 0 to 4 Tbps
+Maximum Flow Bit Rate (MFBR): 0 to 4 Tbps
+
+4. RELEVANT PROCEDURES AND MESSAGE FLOWS
+
+4.1 UE Registration Procedure
+
+Step 1: UE sends Registration Request to AMF via N1 interface
+Step 2: AMF performs authentication via AUSF using N12 interface
+Step 3: AMF retrieves subscription data from UDM via N8 interface
+Step 4: AMF selects appropriate network slice via NSSF consultation
+Step 5: AMF sends Registration Accept with 5G-GUTI assignment
+Step 6: UE confirms registration with Registration Complete message
+
+Key Timers:
+- T3510 (Registration Request): 15 seconds
+- T3520 (Authentication): 30 seconds
+- Mobile reachable timer: 4 minutes (default)
+
+4.2 PDU Session Establishment Procedure
+
+Step 1: UE sends PDU Session Establishment Request via AMF
+Step 2: AMF forwards request to selected SMF via N11 interface
+Step 3: SMF retrieves session management subscription data from UDM
+Step 4: SMF selects UPF and establishes N4 session
+Step 5: SMF initiates AN-specific resource setup via AMF
+Step 6: RAN establishes radio bearers and confirms to AMF
+Step 7: AMF confirms PDU session establishment to UE
+
+Session Parameters:
+- Session establishment timer: 30 seconds
+- Maximum number of PDU sessions per UE: 256
+- Default Session-AMBR: Operator configurable
+
+4.3 Service Request Procedure
+
+Step 1: UE sends Service Request to AMF
+Step 2: AMF authenticates UE and verifies security context
+Step 3: AMF coordinates with SMF for active PDU sessions
+Step 4: SMF activates user plane path via UPF
+Step 5: AMF establishes RAN connection for active sessions
+Step 6: Data transmission commences
+
+5. IMPLEMENTATION NOTES FOR NETWORK OPERATORS
+
+5.1 Network Function Deployment Considerations
+
+AMF Deployment:
+- Deploy AMF instances based on subscriber density and mobility patterns
+- Implement load balancing across multiple AMF instances
+- Configure AMF pools for redundancy and load distribution
+- Typical capacity: 1-10 million registered subscribers per AMF instance
+
+SMF Deployment:
+- Deploy SMF instances based on session establishment rates
+- Implement session continuity mechanisms for SMF failover
+- Configure SMF selection based on DNN and S-NSSAI
+- Typical capacity: 100K-1M concurrent PDU sessions per SMF instance
+
+UPF Deployment:
+- Position UPF instances close to traffic sources and destinations
+- Implement UPF selection based on location and service requirements
+- Configure traffic steering policies for optimal routing
+- Plan for horizontal scaling based on throughput requirements
+
+5.2 Interface Configuration Guidelines
+
+Service Based Interface (SBI) Configuration:
+- Implement OAuth 2.0 for NF authentication
+- Configure TLS 1.2 or higher for secure communications
+- Set appropriate timeout values for HTTP/2 connections
+- Default HTTP/2 connection timeout: 30 seconds
+- Default HTTP/2 stream timeout: 10 seconds
+
+N4 Interface Configuration:
+- Configure PFCP heartbeat interval: 60 seconds (default)
+- Set PFCP association setup retry timer: 5 seconds
+- Configure appropriate PFCP session establishment timeout: 10 seconds
+- Implement PFCP load balancing for multiple UPF instances
+
+5.3 Quality of Service Implementation
+
+5QI Mapping Configuration:
+- Map standardized 5QI values to appropriate radio and transport parameters
+- Configure operator-specific 5QI values (128-254) based on service requirements
+- Implement dynamic QoS adjustment based on network conditions
+- Configure ARP-based pre-emption policies
+
+Session-AMBR Configuration:
+- Set default Session-AMBR values per subscription type
+- Implement dynamic AMBR adjustment based on network load
+- Configure AMBR enforcement at UPF level
+- Typical values: 1 Mbps (basic), 100 Mbps (premium), 1 Gbps (enterprise)
+
+5.4 Security Implementation Guidelines
+
+Authentication Configuration:
+- Implement 5G-AKA authentication method as primary
+- Configure EAP-AKA' as alternative authentication method
+-

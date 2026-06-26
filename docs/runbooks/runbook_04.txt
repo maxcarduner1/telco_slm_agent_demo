@@ -1,0 +1,244 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-VOLTE-001
+Title: VoLTE Quality Degradation Response
+Version: 2.1
+Effective Date: January 15, 2024
+Next Review Date: July 15, 2024
+
+REVISION HISTORY
+================
+Version | Date        | Author           | Description
+--------|-------------|------------------|----------------------------------
+1.0     | 06/01/2023  | J. Martinez      | Initial document creation
+1.1     | 09/15/2023  | S. Chen          | Added IMS core health procedures
+2.0     | 11/30/2023  | M. Rodriguez     | Updated CLI commands for new platform
+2.1     | 01/15/2024  | K. Thompson      | Added codec verification procedures
+
+DOCUMENT APPROVAL
+=================
+Prepared by: Network Operations Team
+Reviewed by: Senior Network Engineer - David Kim
+Approved by: Network Operations Manager - Sarah Johnson
+
+PURPOSE AND SCOPE
+=================
+
+This runbook provides standardized procedures for responding to VoLTE (Voice over LTE) quality degradation incidents. The document covers investigation of Mean Opinion Score (MOS) degradation, codec parameter verification, IMS core health assessment, and quality restoration procedures.
+
+Scope includes:
+- LTE eNodeB voice quality issues
+- IMS core network performance problems
+- Codec configuration and parameter verification
+- End-to-end VoLTE call quality restoration
+- Performance monitoring and trending
+
+This runbook applies to all VoLTE-enabled network elements within the service area including eNodeBs, MME, SGW, PGW, P-CSCF, I-CSCF, S-CSCF, and HSS components.
+
+PREREQUISITES AND TOOLS
+========================
+
+Required Access Levels:
+- NOC Operator Level 2 or higher
+- Read access to network management systems
+- CLI access to IMS core elements
+- Access to performance monitoring dashboards
+
+Required Tools and Systems:
+- Network Management System (NMS) - OptiView Pro v4.2
+- IMS Core Management Platform - Ericsson IMS Manager v7.1
+- Performance Analytics Tool - Splunk Enterprise v9.0
+- Call Detail Record (CDR) Analysis System - Oracle ACME v12.2
+- VoLTE Quality Monitoring Dashboard - Custom Portal v3.1
+- SSH client with saved connection profiles
+- Network topology diagrams and IP addressing sheets
+
+Required Knowledge:
+- Basic understanding of LTE architecture
+- IMS core network components and interfaces
+- VoLTE call flow procedures
+- Codec types and quality parameters
+- SIP protocol fundamentals
+
+INITIAL ASSESSMENT PROCEDURES
+=============================
+
+1. INCIDENT VERIFICATION
+
+1.1 Access VoLTE Quality Monitoring Dashboard
+    - Navigate to https://volte-quality.internal.com
+    - Login with NOC credentials
+    - Select appropriate market/region from dropdown
+
+1.2 Verify MOS Score Degradation
+    - Check current average MOS score in main dashboard
+    - Compare against baseline threshold (Normal: >4.0, Warning: 3.5-4.0, Critical: <3.5)
+    - Review trending data for past 4 hours
+    - Document current MOS value and degradation percentage
+
+1.3 Identify Affected Areas
+    - Review geographic heat map for quality issues
+    - Note affected cell sites and coverage areas
+    - Check if degradation is localized or widespread
+    - Document number of affected subscribers
+
+1.4 Check Active Alarms
+    - Access NMS alarm console
+    - Filter for VoLTE and IMS-related alarms
+    - Priority: Critical and Major alarms first
+    - Document alarm IDs and descriptions
+
+2. TRAFFIC ANALYSIS
+
+2.1 Analyze Call Volume Patterns
+    - Access CDR Analysis System
+    - Query: SELECT COUNT(*) FROM volte_calls WHERE timestamp >= NOW() - INTERVAL 1 HOUR
+    - Compare current hour traffic to same hour previous day
+    - Check for unusual traffic spikes or drops
+
+2.2 Review Call Success Rates
+    - Query call setup success rate: (Successful calls / Total attempts) * 100
+    - Target threshold: >98%
+    - Check call drop rate: (Dropped calls / Completed calls) * 100
+    - Target threshold: <2%
+
+2.3 Examine Codec Distribution
+    - Query active codec usage:
+      SELECT codec_type, COUNT(*) as usage_count 
+      FROM active_calls 
+      WHERE call_type='VOLTE' 
+      GROUP BY codec_type
+    - Verify expected codec distribution (AMR-WB preferred)
+
+DETAILED DIAGNOSTIC PROCEDURES
+===============================
+
+3. MOS SCORE INVESTIGATION
+
+3.1 Access Performance Analytics Platform
+    - Login to Splunk Enterprise dashboard
+    - Navigate to VoLTE Quality Index
+
+3.2 Execute MOS Analysis Query
+    index="volte_quality" sourcetype="mos_metrics" 
+    | stats avg(mos_score) as avg_mos, min(mos_score) as min_mos, max(mos_score) as max_mos by cell_id 
+    | where avg_mos < 4.0 
+    | sort avg_mos
+
+3.3 Identify Root Cause Indicators
+    - Packet loss percentage (Target: <0.1%)
+    - Jitter measurements (Target: <20ms)
+    - Round-trip delay (Target: <150ms)
+    - Signal-to-noise ratio degradation
+
+3.4 Generate Detailed MOS Report
+    - Export results to CSV format
+    - Include timestamp, cell_id, avg_mos, packet_loss, jitter, delay
+    - Save report with naming convention: MOS_Analysis_YYYYMMDD_HHMM.csv
+
+4. CODEC PARAMETER VERIFICATION
+
+4.1 Access eNodeB Configuration
+    - SSH to affected eNodeB management interface
+    - Command: ssh noc_user@[eNodeB_IP_Address]
+    - Navigate to VoLTE configuration section
+
+4.2 Verify AMR-WB Codec Settings
+    - Command: show volte codec-config
+    - Verify the following parameters:
+      * AMR-WB enabled: true
+      * Bit rate: 23.85 kbps (preferred)
+      * Frame size: 20ms
+      * Comfort noise generation: enabled
+      * Voice activity detection: enabled
+
+4.3 Check Codec Negotiation Priority
+    - Command: show volte codec-priority-list
+    - Expected order:
+      1. AMR-WB (23.85 kbps)
+      2. AMR-WB (15.85 kbps)
+      3. AMR-NB (12.2 kbps)
+      4. AMR-NB (7.95 kbps)
+
+4.4 Validate QoS Parameters
+    - Command: show volte qos-profile
+    - Verify QCI values:
+      * Voice: QCI 1 (GBR, Priority 2, Delay 100ms)
+      * Signaling: QCI 5 (Non-GBR, Priority 1, Delay 100ms)
+
+4.5 Review Packet Scheduling Configuration
+    - Command: show lte scheduler volte-optimization
+    - Confirm voice packet prioritization is active
+    - Verify TTI bundling is enabled for voice bearers
+
+5. IMS CORE HEALTH CHECKS
+
+5.1 P-CSCF Health Verification
+    - SSH to P-CSCF server: ssh admin@p-cscf-01.ims.internal
+    - Check service status: systemctl status p-cscf-service
+    - Verify registration statistics:
+      Command: cscf-cli show registrations summary
+      Expected: >95% successful registrations
+
+5.2 I-CSCF Performance Check
+    - SSH to I-CSCF server: ssh admin@i-cscf-01.ims.internal
+    - Monitor query response times:
+      Command: cscf-cli show performance-stats
+      Target: Average response time <50ms
+
+5.3 S-CSCF Session Analysis
+    - SSH to S-CSCF server: ssh admin@s-cscf-01.ims.internal
+    - Check active sessions:
+      Command: cscf-cli show active-sessions count
+    - Verify session establishment rate:
+      Command: cscf-cli show session-stats hourly
+      Target: >98% successful session establishments
+
+5.4 HSS Database Connectivity
+    - SSH to HSS server: ssh admin@hss-01.ims.internal
+    - Test database connectivity:
+      Command: hss-cli test-db-connection
+      Expected result: "Connection successful"
+    - Check subscriber profile queries:
+      Command: hss-cli show query-performance
+      Target: Average query time <10ms
+
+5.5 Media Gateway Performance
+    - SSH to MGW: ssh admin@mgw-01.ims.internal
+    - Check RTP stream statistics:
+      Command: mgw-cli show rtp-stats summary
+    - Verify codec transcoding performance:
+      Command: mgw-cli show transcoding-load
+      Target: CPU utilization <70%
+
+DECISION TREES AND TROUBLESHOOTING
+===================================
+
+6. QUALITY DEGRADATION DECISION TREE
+
+6.1 Initial Assessment Branch
+    IF MOS Score >= 4.0:
+        - Monitor for 15 minutes
+        - Document false alarm
+        - Close incident
+    ELSE IF MOS Score 3.5-4.0:
+        - Proceed to Section 6.2 (Moderate Degradation)
+    ELSE IF MOS Score < 3.5:
+        - Proceed to Section 6.3 (Severe Degradation)
+
+6.2 Moderate Degradation (MOS 3.5-4.0)
+    Step 1: Check network congestion
+    - Command: show lte cell-load statistics
+    - IF PRB utilization > 80%:
+        * Implement load balancing procedures (Section 7.1)
+    - ELSE proceed to Step 2
+
+    Step 2: Verify codec configuration
+    - Execute codec verification (Section 4.2-4.3)
+    - IF codec misconfiguration found:
+        * Apply codec optimization (Section 7.2)
+    - ELSE proceed to Step 3
+
+    Step 3: Check IMS core performance
+    - Execute IMS health checks (Section 5)
+    - IF

@@ -1,0 +1,254 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-2024-007
+Title: Handover Failure Troubleshooting
+Version: 2.1
+Effective Date: March 15, 2024
+
+REVISION HISTORY
+
+Version 1.0 - Initial release - January 10, 2024 - J. Martinez
+Version 1.1 - Added Xn interface procedures - February 5, 2024 - S. Chen
+Version 2.0 - Enhanced MRO procedures - February 28, 2024 - R. Thompson
+Version 2.1 - Updated escalation contacts - March 15, 2024 - J. Martinez
+
+1. PURPOSE AND SCOPE
+
+1.1 Purpose
+This runbook provides standardized procedures for diagnosing and resolving handover failures in LTE and 5G networks. It covers X2/Xn interface diagnostics, neighbor relation optimization, handover parameter tuning, and mobility robustness optimization (MRO).
+
+1.2 Scope
+This document applies to:
+- LTE eNodeB handover failures
+- 5G gNodeB handover failures
+- Inter-RAT handover issues
+- X2/Xn interface connectivity problems
+- Mobility parameter optimization
+
+1.3 Target Audience
+- Network Operations Center (NOC) engineers
+- Field maintenance technicians
+- Radio optimization engineers
+- Escalation support teams
+
+2. PREREQUISITES AND TOOLS
+
+2.1 Required Access
+- Element Management System (EMS) access with Level 2 privileges
+- Network Management System (NMS) monitoring dashboard
+- Performance Management (PM) counter access
+- Configuration Management (CM) database access
+
+2.2 Required Tools
+- SSH client (PuTTY or equivalent)
+- Network analyzer software
+- Drive test equipment (optional)
+- Performance monitoring tools
+
+2.3 Required Knowledge
+- Basic understanding of LTE/5G handover procedures
+- Familiarity with 3GPP handover parameters
+- Knowledge of X2/Xn interface protocols
+- Understanding of mobility management concepts
+
+3. HANDOVER FAILURE IDENTIFICATION
+
+3.1 Key Performance Indicators
+Monitor the following KPIs to identify handover issues:
+- Handover Success Rate (target: >98%)
+- Handover Preparation Failure Rate (target: <1%)
+- Handover Execution Failure Rate (target: <1%)
+- Radio Link Failure Rate (target: <0.5%)
+
+3.2 Alarm Monitoring
+Watch for these critical alarms:
+- X2/Xn Interface Down
+- Neighbor Relation Missing
+- Handover Failure Threshold Exceeded
+- Mobility Robustness Degradation
+
+4. INITIAL ASSESSMENT PROCEDURES
+
+4.1 Gather Basic Information
+Step 1: Log into the EMS system
+Command: ssh noc_user@ems_server_ip
+Password: [Use assigned credentials]
+
+Step 2: Identify affected cells
+Command: show cell status | grep -i "handover\|ho"
+Expected output: List of cells with handover-related issues
+
+Step 3: Check current handover statistics
+Command: show pm counters cell_id=XXXXX counter_type=handover
+Parameters: 
+- cell_id: Target cell identifier
+- time_range: Last 1 hour
+- counter_type: handover, mobility, x2
+
+Step 4: Verify X2/Xn interface status
+Command: show interface x2 status
+Command: show interface xn status
+Expected output: Interface state should show "ACTIVE"
+
+4.2 Collect Performance Data
+Step 1: Extract handover-related PM counters
+Command: get pm data cell=XXXXX start_time="YYYY-MM-DD HH:MM" end_time="YYYY-MM-DD HH:MM"
+Counters to collect:
+- RRC.ConnEstabAtt.Sum
+- RRC.ConnEstabSucc.Sum
+- HO.ExeAtt.Sum
+- HO.ExeSucc.Sum
+- HO.PrepAtt.Sum
+- HO.PrepSucc.Sum
+
+Step 2: Check neighbor relations
+Command: show neighbor relations cell_id=XXXXX
+Parameters: Include PCI, EARFCN/ARFCN, and relation status
+
+5. X2/XN INTERFACE DIAGNOSTICS
+
+5.1 X2 Interface Troubleshooting
+Step 1: Verify X2 connectivity
+Command: ping x2_peer_ip_address count=10
+Expected result: 0% packet loss
+
+Step 2: Check X2 SCTP association
+Command: show sctp association | grep x2
+Expected output: State should be "ESTABLISHED"
+
+Step 3: Verify X2 application protocol
+Command: show x2ap status peer_enb_id=XXXXX
+Parameters:
+- peer_enb_id: Target eNodeB identifier
+- Expected state: CONNECTED
+
+Step 4: Reset X2 interface if needed
+Command: reset x2 interface peer_enb_id=XXXXX
+Warning: This will temporarily disrupt handovers to the peer eNodeB
+
+5.2 Xn Interface Troubleshooting (5G)
+Step 1: Check Xn interface status
+Command: show xn interface status peer_gnb_id=XXXXX
+Expected output: State "ACTIVE", Setup "SUCCESS"
+
+Step 2: Verify Xn SCTP parameters
+Command: show sctp association xn peer_ip=XXX.XXX.XXX.XXX
+Parameters to verify:
+- RTO: 1000ms (default)
+- Max retransmissions: 10
+- Heartbeat interval: 30000ms
+
+Step 3: Test Xn connectivity
+Command: test xn connectivity peer_gnb_id=XXXXX
+Expected result: "CONNECTIVITY_TEST_PASSED"
+
+6. NEIGHBOR RELATION OPTIMIZATION
+
+6.1 Neighbor Relation Verification
+Step 1: List all neighbor relations
+Command: show neighbor cell source_cell=XXXXX
+Output format: PCI, EARFCN, CGI, Relation_Status
+
+Step 2: Check for missing neighbors
+Command: analyze missing neighbors cell_id=XXXXX radius=5km
+This identifies potential neighbors not in the neighbor list
+
+Step 3: Verify neighbor cell parameters
+Command: get cell config neighbor_cell_id=XXXXX
+Parameters to verify:
+- Physical Cell ID (PCI)
+- Tracking Area Code (TAC)
+- PLMN ID
+- Frequency band
+
+6.2 Automatic Neighbor Relation (ANR) Configuration
+Step 1: Enable ANR function
+Command: set anr enable cell_id=XXXXX
+Parameters:
+- anr_enable: true
+- max_neighbors: 32
+- measurement_gap_config: auto
+
+Step 2: Configure ANR thresholds
+Command: set anr thresholds cell_id=XXXXX
+Parameters:
+- rsrp_threshold: -110 dBm
+- rsrq_threshold: -15 dB
+- detection_threshold: 3 reports
+
+Step 3: Verify ANR operation
+Command: show anr status cell_id=XXXXX
+Expected output: ANR state "ACTIVE", detected neighbors count
+
+7. HANDOVER PARAMETER TUNING
+
+7.1 A3 Event Configuration
+Step 1: Check current A3 parameters
+Command: get measurement config cell_id=XXXXX event_type=A3
+Current parameters displayed:
+- a3_offset: Current value in dB
+- hysteresis: Current value in dB
+- time_to_trigger: Current value in ms
+
+Step 2: Optimize A3 offset
+For coverage issues:
+Command: set measurement config cell_id=XXXXX event_type=A3 a3_offset=2
+For interference issues:
+Command: set measurement config cell_id=XXXXX event_type=A3 a3_offset=4
+Typical range: 0-6 dB
+
+Step 3: Adjust hysteresis parameter
+For stable environment:
+Command: set measurement config cell_id=XXXXX event_type=A3 hysteresis=2
+For unstable environment:
+Command: set measurement config cell_id=XXXXX event_type=A3 hysteresis=4
+Typical range: 0-6 dB
+
+7.2 Time to Trigger (TTT) Optimization
+Step 1: Configure TTT for different scenarios
+For high mobility:
+Command: set measurement config cell_id=XXXXX event_type=A3 time_to_trigger=160
+For low mobility:
+Command: set measurement config cell_id=XXXXX event_type=A3 time_to_trigger=320
+Available values: 0, 40, 64, 80, 100, 128, 160, 256, 320, 480, 512, 640, 1024, 1280, 2560, 5120 ms
+
+Step 2: Verify TTT configuration
+Command: show measurement config cell_id=XXXXX
+Confirm TTT value is applied correctly
+
+7.3 Additional Handover Parameters
+Step 1: Configure handover margin
+Command: set handover margin cell_id=XXXXX margin_value=3
+Typical range: 0-10 dB
+
+Step 2: Set maximum handover attempts
+Command: set handover max_attempts cell_id=XXXXX attempts=3
+Typical range: 1-5 attempts
+
+Step 3: Configure handover timer values
+Command: set handover timers cell_id=XXXXX
+Parameters:
+- t304: 2000 ms (handover execution timer)
+- t310: 1000 ms (radio link failure timer)
+- t311: 10000 ms (radio link failure recovery timer)
+
+8. MOBILITY ROBUSTNESS OPTIMIZATION (MRO)
+
+8.1 Enable MRO Function
+Step 1: Activate MRO algorithm
+Command: set mro enable cell_id=XXXXX
+Parameters:
+- mro_enable: true
+- optimization_period: 3600 seconds
+- min_sample_size: 100
+
+Step 2: Configure MRO thresholds
+Command: set mro thresholds cell_id=XXXXX
+Parameters:
+- too_early_ho_threshold: 2%
+- too_late_ho_threshold: 2%
+- ho_to_wrong_cell_threshold: 1%
+
+8.2 MRO Parameter Adjustment
+Step 1: Monitor MRO recommendations
+Command: show m

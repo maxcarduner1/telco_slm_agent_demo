@@ -1,0 +1,288 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-SOP-2024-007
+Title: Network Congestion Management SOP
+Version: 2.1
+Effective Date: March 15, 2024
+Next Review Date: March 15, 2025
+
+REVISION HISTORY
+Version 1.0 - Initial release - January 10, 2024 - J. Martinez
+Version 1.1 - Added CA optimization procedures - February 5, 2024 - S. Chen
+Version 2.0 - Updated PRB thresholds and escalation criteria - February 28, 2024 - M. Rodriguez
+Version 2.1 - Added automated load balancing triggers - March 15, 2024 - K. Thompson
+
+DOCUMENT APPROVAL
+Prepared by: Network Operations Team
+Reviewed by: Senior Network Engineer - David Kim
+Approved by: Network Operations Manager - Sarah Johnson
+
+1. PURPOSE AND SCOPE
+
+1.1 Purpose
+This Standard Operating Procedure (SOP) defines the systematic approach for identifying, analyzing, and mitigating network congestion events across the LTE and 5G NR radio access network. The procedure ensures optimal network performance through proactive traffic management and resource optimization.
+
+1.2 Scope
+This SOP applies to all Network Operations Center (NOC) personnel responsible for real-time network monitoring and congestion management. Coverage includes:
+- LTE eNodeB and 5G gNodeB cell sites
+- Physical Resource Block (PRB) utilization monitoring
+- Traffic pattern analysis and load balancing
+- Carrier aggregation optimization
+- Capacity planning trigger events
+
+1.3 Objectives
+- Maintain PRB utilization below 85% during peak hours
+- Minimize call drop rates and service degradation
+- Optimize spectral efficiency through dynamic resource allocation
+- Ensure compliance with service level agreements (SLAs)
+
+2. PREREQUISITES AND TOOLS
+
+2.1 Personnel Requirements
+- NOC Level 2 certification or equivalent
+- LTE/5G NR technology training completion
+- Access to network management systems with appropriate privileges
+
+2.2 Required Tools and Systems
+- Network Management System (NMS): Ericsson OSS-RC 21.2 or higher
+- Performance Management System: Nokia NetAct 19.0
+- CLI Access: SSH client with RSA key authentication
+- Traffic Analysis Tool: Huawei U2020 Network Management System
+- Capacity Planning Tool: Atoll Radio Planning Software v3.4
+- Ticketing System: ServiceNow ITSM Platform
+
+2.3 Access Requirements
+- NOC workstation with dual monitor setup
+- VPN connection to network management VLAN
+- Emergency contact list with current phone numbers
+- Network topology diagrams and site databases
+
+3. MONITORING THRESHOLDS AND ALERT CRITERIA
+
+3.1 PRB Utilization Thresholds
+- Green Status: PRB utilization < 70%
+- Yellow Alert: PRB utilization 70-84%
+- Orange Alert: PRB utilization 85-94%
+- Red Alert: PRB utilization >= 95%
+
+3.2 Traffic Pattern Indicators
+- Sustained high utilization > 15 minutes
+- Abnormal traffic spikes > 200% of baseline
+- Increasing call setup failure rate > 2%
+- Handover success rate < 98%
+
+3.3 Performance Degradation Metrics
+- Average throughput decrease > 30%
+- Latency increase > 50ms from baseline
+- Packet loss rate > 0.1%
+- Voice quality degradation (MOS < 3.5)
+
+4. DETAILED PROCEDURES
+
+4.1 Initial Congestion Detection and Assessment
+
+Step 1: Monitor Real-time Performance Metrics
+1.1 Access NMS dashboard using credentials
+1.2 Navigate to Real-time Performance tab
+1.3 Filter view by geographic region or cell cluster
+1.4 Review PRB utilization heat map for anomalies
+1.5 Check active alarm summary for congestion-related alerts
+
+Step 2: Validate Congestion Event
+2.1 Open CLI session to affected eNodeB/gNodeB
+    ssh noc_user@[cell_site_ip]
+    show cell status summary
+    show prb utilization detailed
+    show traffic statistics hourly
+
+2.2 Compare current metrics against historical baseline
+    show performance counters last_24_hours
+    show traffic patterns weekly_average
+
+2.3 Identify congestion type and severity level
+    - Uplink congestion: UL PRB > 85%
+    - Downlink congestion: DL PRB > 85%
+    - Control channel congestion: PDCCH utilization > 80%
+
+Step 3: Traffic Pattern Analysis
+3.1 Execute traffic analysis commands
+    show subscriber distribution by_service_type
+    show application usage top_10
+    show device type distribution
+
+3.2 Identify congestion root cause
+    - Video streaming surge
+    - IoT device mass registration
+    - Emergency event traffic spike
+    - Network equipment malfunction
+
+4.2 Load Balancing Activation Procedures
+
+Step 4: Evaluate Load Balancing Options
+4.1 Check neighboring cell capacity
+    show neighbor cell status
+    show handover statistics success_rate
+    show inter_frequency measurements
+
+4.2 Assess load balancing feasibility
+    ping neighbor_cell_ip -c 5
+    show x2_interface status
+    show load balancing parameters current
+
+Step 5: Implement Mobility Load Balancing (MLB)
+5.1 Access mobility management interface
+    configure terminal
+    mobility load-balancing enable
+    set handover threshold offset -2dB
+    set handover hysteresis 2dB
+    set time-to-trigger 160ms
+
+5.2 Activate inter-frequency load balancing
+    configure inter-freq-lb enable
+    set target-frequency 2100MHz priority high
+    set load-threshold 75%
+    commit configuration
+
+5.3 Monitor load balancing effectiveness
+    show handover statistics real-time
+    show prb utilization trend 5min
+    show user distribution post-balancing
+
+Step 6: Inter-RAT Load Balancing (LTE to 5G)
+6.1 Verify 5G coverage availability
+    show 5g coverage map
+    show inter-rat neighbor list
+    ping 5g_gnodeb_ip
+
+6.2 Configure inter-RAT parameters
+    configure inter-rat-lb
+    set 5g-redirect-threshold 80%
+    set measurement-gap-pattern pattern0
+    set redirect-priority voice=LTE data=5G
+    apply configuration
+
+4.3 Carrier Aggregation Optimization
+
+Step 7: Carrier Aggregation Assessment
+7.1 Check CA capability and status
+    show carrier-aggregation status
+    show secondary-cell configuration
+    show ca-capable-users count
+
+7.2 Evaluate spectrum availability
+    show spectrum allocation current
+    show interference levels all-bands
+    show license utilization summary
+
+Step 8: Activate Additional Component Carriers
+8.1 Enable secondary component carrier
+    configure carrier-aggregation
+    add secondary-carrier frequency=1900MHz bandwidth=20MHz
+    set aggregation-level 3CA
+    set scheduling-algorithm proportional-fair
+
+8.2 Configure CA parameters
+    set primary-secondary-ratio 60:40
+    set cross-carrier-scheduling enable
+    set carrier-indicator-field 3bits
+    commit changes
+
+8.3 Optimize CA performance
+    show ca performance metrics
+    adjust power allocation primary=60% secondary=40%
+    monitor throughput improvement
+
+4.4 Advanced Congestion Mitigation
+
+Step 9: Quality of Service (QoS) Management
+9.1 Implement traffic prioritization
+    configure qos-policy emergency
+    set voice-priority highest
+    set video-priority medium
+    set best-effort-priority lowest
+
+9.2 Apply admission control
+    configure admission-control
+    set max-users-per-cell 150
+    set resource-reservation voice=20% video=50%
+    enable congestion-control
+
+Step 10: Dynamic Spectrum Management
+10.1 Activate spectrum sharing
+    configure dynamic-spectrum
+    enable spectrum-sharing 3.5GHz
+    set sharing-ratio 70:30
+    monitor interference levels
+
+10.2 Implement frequency reuse optimization
+    configure frequency-reuse
+    set reuse-factor adaptive
+    enable interference-coordination
+    apply icic-parameters
+
+5. DECISION TREES FOR COMMON SCENARIOS
+
+5.1 High PRB Utilization Decision Tree
+
+IF PRB utilization > 85% AND duration > 15 minutes
+  THEN check neighboring cell capacity
+    IF neighbor capacity available (PRB < 70%)
+      THEN activate load balancing (Step 5)
+    ELSE IF 5G coverage available
+      THEN implement inter-RAT balancing (Step 6)
+    ELSE
+      THEN activate carrier aggregation (Step 8)
+
+IF PRB utilization > 95% AND call drop rate > 5%
+  THEN implement emergency procedures
+    AND escalate to Level 3 support
+    AND consider temporary admission control
+
+5.2 Traffic Spike Response Decision Tree
+
+IF traffic spike > 300% of baseline
+  THEN identify traffic type
+    IF video streaming surge
+      THEN apply video QoS throttling
+      AND activate additional spectrum
+    ELSE IF emergency event
+      THEN prioritize voice services
+      AND implement emergency QoS profile
+    ELSE IF equipment failure suspected
+      THEN escalate to field engineering
+      AND prepare backup site activation
+
+5.3 Carrier Aggregation Decision Tree
+
+IF single carrier PRB > 90% AND CA-capable users > 60%
+  THEN check spectrum availability
+    IF additional spectrum licensed
+      THEN activate secondary carrier (Step 8.1)
+    ELSE IF spectrum sharing possible
+      THEN implement dynamic spectrum (Step 10.1)
+    ELSE
+      THEN escalate for capacity expansion
+
+6. ESCALATION CRITERIA AND CONTACTS
+
+6.1 Level 2 Escalation Criteria
+- PRB utilization > 95% for more than 30 minutes
+- Call drop rate > 10% in affected cells
+- Multiple congestion mitigation attempts failed
+- Customer complaints > 50 per hour for affected area
+
+6.2 Level 3 Escalation Criteria
+- Network-wide congestion affecting multiple markets
+- Equipment failure suspected during congestion event
+- Regulatory compliance issues identified
+- Major customer impact (enterprise/government services)
+
+6.3 Emergency Escalation Criteria
+- Public safety network congestion
+- Natural disaster or emergency event
+- Security incident during congestion management
+- Complete service outage in affected area
+
+6.4 Contact Information
+
+Level 

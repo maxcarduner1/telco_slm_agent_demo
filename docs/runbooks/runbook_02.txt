@@ -1,0 +1,238 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-2024-015
+Title: RAN Latency Troubleshooting Procedure
+Version: 2.1
+Effective Date: January 15, 2024
+Next Review Date: July 15, 2024
+
+REVISION HISTORY
+
+Version 1.0 - March 10, 2023 - Initial document creation - J. Martinez, Senior NOC Engineer
+Version 1.1 - August 22, 2023 - Added LTE-A troubleshooting steps - K. Thompson, RF Engineer  
+Version 2.0 - November 30, 2023 - Updated for 5G NSA integration - M. Chen, Network Architect
+Version 2.1 - January 15, 2024 - Enhanced S1-U diagnostics procedures - R. Patel, NOC Manager
+
+DOCUMENT APPROVAL
+
+Prepared by: Network Operations Center Team
+Reviewed by: Sarah Williams, NOC Director
+Approved by: David Rodriguez, VP Network Engineering
+
+1. PURPOSE AND SCOPE
+
+1.1 Purpose
+This runbook provides standardized procedures for diagnosing and resolving Radio Access Network (RAN) latency issues affecting subscriber experience and network performance. The document covers systematic troubleshooting methodologies for S1-U interface latency investigation, backhaul link diagnostics, core network path analysis, and performance baseline restoration.
+
+1.2 Scope
+This procedure applies to:
+- LTE eNodeB sites experiencing latency degradation
+- 5G gNodeB sites with NSA configuration latency issues
+- S1-U interface performance problems between eNodeB and Serving Gateway
+- Backhaul transport network latency analysis
+- Core network path optimization
+- Performance baseline restoration activities
+
+1.3 Exclusions
+This runbook does not cover:
+- RF optimization procedures
+- Capacity planning activities  
+- Hardware replacement procedures
+- Software upgrade processes
+
+2. PREREQUISITES AND TOOLS NEEDED
+
+2.1 Personnel Requirements
+- NOC Level 2 certification or equivalent experience
+- RAN troubleshooting training completion
+- Access to network monitoring systems
+- Understanding of LTE/5G protocol stack
+
+2.2 System Access Requirements
+- Network Management System (NMS) access with read/write privileges
+- Element Management System (EMS) login credentials
+- Performance monitoring dashboard access
+- Ticketing system access for escalation procedures
+
+2.3 Required Tools and Software
+- Network performance monitoring platform (NetScout/JDSU)
+- Protocol analyzer software (Wireshark Enterprise)
+- SSH client for CLI access
+- Network topology mapping tools
+- Latency measurement utilities (ping, traceroute, iperf3)
+
+2.4 Reference Documentation
+- Network topology diagrams
+- IP addressing schemes
+- Baseline performance metrics
+- Vendor-specific troubleshooting guides
+- Emergency contact directory
+
+3. INITIAL ASSESSMENT AND DATA COLLECTION
+
+3.1 Alarm Analysis
+Step 1: Access the Network Management System dashboard
+Step 2: Filter alarms by severity level (Critical, Major, Minor)
+Step 3: Identify RAN-related latency alarms using filter criteria:
+   - Alarm Type: Performance
+   - Technology: LTE, 5G-NR
+   - KPI Category: Latency, Delay
+Step 4: Document active alarms with timestamps and affected cell sites
+
+3.2 Performance Metrics Collection
+Step 1: Navigate to RAN Performance Dashboard
+Step 2: Select affected cell site or cluster
+Step 3: Retrieve the following KPIs for last 24-hour period:
+   - S1-U Round Trip Time (RTT) - Target: <20ms
+   - User Plane Latency - Target: <10ms for eMBB
+   - Backhaul Link Utilization - Threshold: <80%
+   - Packet Loss Ratio - Target: <0.1%
+   - Jitter measurements - Target: <5ms
+
+Step 4: Export performance data to CSV format for trend analysis
+Step 5: Compare current metrics against established baselines
+
+3.3 Subscriber Impact Assessment
+Step 1: Query subscriber session database for affected area
+Step 2: Calculate Key Performance Indicators:
+   - Call Drop Rate increase percentage
+   - Data session establishment success rate
+   - Average throughput degradation
+   - Voice quality metrics (MOS scores)
+
+Step 3: Determine subscriber count impacted by latency issues
+Step 4: Classify impact severity:
+   - Low: <100 subscribers, <5% performance degradation
+   - Medium: 100-1000 subscribers, 5-15% performance degradation  
+   - High: >1000 subscribers, >15% performance degradation
+
+4. S1-U INTERFACE LATENCY INVESTIGATION
+
+4.1 S1-U Bearer Analysis
+Step 1: Access eNodeB Element Management System
+Step 2: Navigate to S1-U Interface Statistics
+Step 3: Execute CLI command on eNodeB:
+   show s1u-interface statistics bearer-id all
+Step 4: Analyze output for the following parameters:
+   - GTP-U tunnel establishment time
+   - Uplink/Downlink packet delay variation
+   - GTP-U header processing latency
+   - Buffer occupancy levels
+
+Step 5: Compare results against baseline values:
+   - GTP-U tunnel setup: <50ms (baseline <30ms)
+   - Packet delay variation: <10ms (baseline <5ms)
+
+4.2 S1-U Path MTU Discovery
+Step 1: Log into eNodeB via SSH using credentials
+Step 2: Execute path MTU discovery test:
+   ping -M do -s 1472 [SGW_IP_ADDRESS]
+Step 3: If fragmentation occurs, reduce packet size incrementally:
+   ping -M do -s 1400 [SGW_IP_ADDRESS]
+   ping -M do -s 1300 [SGW_IP_ADDRESS]
+Step 4: Document optimal MTU size for S1-U path
+Step 5: Verify MTU configuration matches across all S1-U interfaces
+
+4.3 GTP-U Tunnel Health Check
+Step 1: Access Serving Gateway management interface
+Step 2: Execute tunnel status verification:
+   show gtp-u tunnel-info local-teid [TUNNEL_ID]
+Step 3: Verify tunnel parameters:
+   - Tunnel State: Active
+   - Sequence Number Alignment: Synchronized  
+   - Keep-alive Status: Responding
+   - Error Counter: <0.01% threshold
+
+Step 4: If tunnel errors detected, execute tunnel reset:
+   clear gtp-u tunnel local-teid [TUNNEL_ID]
+Step 5: Monitor tunnel re-establishment and latency improvement
+
+5. BACKHAUL LINK DIAGNOSTICS
+
+5.1 Transport Network Path Analysis
+Step 1: Identify backhaul path from eNodeB to core network
+Step 2: Execute enhanced traceroute with timestamp options:
+   traceroute -I -q 5 [CORE_NETWORK_IP] 
+Step 3: Analyze hop-by-hop latency measurements:
+   - Document each hop IP address and RTT
+   - Identify hops with >5ms latency increase
+   - Flag any timeout or packet loss indicators
+
+Step 4: Perform bidirectional latency testing:
+   From eNodeB: ping -c 100 -i 0.1 [SGW_IP]
+   From SGW: ping -c 100 -i 0.1 [eNodeB_IP]
+Step 5: Calculate statistical analysis:
+   - Minimum/Maximum/Average RTT
+   - Standard deviation and jitter calculations
+   - Packet loss percentage
+
+5.2 Microwave Link Assessment (if applicable)
+Step 1: Access microwave equipment management system
+Step 2: Retrieve link performance metrics:
+   - Received Signal Level (RSL) - Target: >-65dBm
+   - Signal-to-Noise Ratio - Target: >25dB
+   - Bit Error Rate - Target: <10^-6
+   - Link Availability - Target: >99.99%
+
+Step 3: Check for adaptive modulation events:
+   show interface radio statistics modulation-changes
+Step 4: Analyze weather correlation data if performance degradation detected
+Step 5: Verify antenna alignment and obstruction status
+
+5.3 Fiber Optic Link Diagnostics
+Step 1: Access optical transport equipment
+Step 2: Execute optical power measurements:
+   show interface [INTERFACE_ID] optics
+Step 3: Verify optical parameters within specifications:
+   - Transmit Power: -3dBm to +2dBm
+   - Receive Power: -15dBm to -3dBm  
+   - Optical Signal-to-Noise Ratio: >15dB
+
+Step 4: Perform Optical Time Domain Reflectometry (OTDR) test if degradation detected
+Step 5: Document fiber span loss and splice locations
+
+6. CORE NETWORK PATH ANALYSIS
+
+6.1 Serving Gateway Performance Analysis
+Step 1: Access SGW performance monitoring dashboard
+Step 2: Retrieve processing latency metrics:
+   - GTP-U packet processing time
+   - Bearer establishment latency
+   - Handover completion time
+   - CPU and memory utilization
+
+Step 3: Execute SGW diagnostic commands:
+   show system performance cpu-usage
+   show system performance memory-usage  
+   show gtp-u statistics processing-delay
+
+Step 4: Analyze results against performance thresholds:
+   - CPU Utilization: <70% (alarm at 80%)
+   - Memory Utilization: <75% (alarm at 85%)
+   - GTP-U Processing: <2ms (alarm at 5ms)
+
+6.2 Packet Data Network Gateway Analysis  
+Step 1: Connect to PGW management interface
+Step 2: Review session establishment metrics:
+   show pdp-context statistics establishment-time
+Step 3: Analyze IP pool allocation delays:
+   show ip-pool allocation-statistics
+Step 4: Verify DNS resolution performance:
+   show dns statistics response-time
+
+Step 5: Check for congestion indicators:
+   - Session establishment success rate >99%
+   - IP allocation time <100ms
+   - DNS response time <50ms
+
+6.3 Mobility Management Entity Assessment
+Step 1: Access MME performance dashboard  
+Step 2: Retrieve authentication and mobility metrics:
+   - Attach procedure completion time
+   - Tracking Area Update latency
+   - Handover signaling delay
+   - HSS query response time
+
+Step 3: Execute MME diagnostic verification:
+   show mme statistics attach-procedure
+   show mme statistics handover-performance

@@ -1,0 +1,233 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-RF-001
+Title: Troubleshooting High VSWR on Sector Antennas
+Revision: 3.2
+Effective Date: January 15, 2024
+Next Review Date: January 15, 2025
+
+REVISION HISTORY
+
+Rev 1.0 - March 10, 2022 - Initial document creation - J. Martinez
+Rev 2.0 - August 22, 2022 - Added CLI commands for new RRU models - S. Chen
+Rev 2.1 - February 14, 2023 - Updated escalation contacts - M. Rodriguez
+Rev 3.0 - September 05, 2023 - Added LTE-A and 5G NR procedures - K. Thompson
+Rev 3.1 - November 18, 2023 - Updated VSWR threshold values - A. Patel
+Rev 3.2 - January 15, 2024 - Added automated diagnostic scripts - D. Williams
+
+DOCUMENT APPROVAL
+
+Prepared by: Network Operations Center
+Reviewed by: RF Engineering Team
+Approved by: Network Operations Manager
+
+1. PURPOSE AND SCOPE
+
+1.1 Purpose
+This runbook provides standardized procedures for diagnosing and resolving high Voltage Standing Wave Ratio (VSWR) conditions on cellular sector antennas. High VSWR indicates impedance mismatch in the RF transmission path and can result in reduced coverage, increased power consumption, equipment damage, and service degradation.
+
+1.2 Scope
+This document applies to all cellular sites operating on the following technologies:
+- GSM 850/1900 MHz
+- UMTS 850/1900/2100 MHz
+- LTE 700/850/1700/1900/2100/2600 MHz
+- 5G NR 600/850/1900/2500/3700/28000 MHz
+
+This runbook covers sector antennas with VSWR measurements exceeding normal operational thresholds as defined in section 4.1.
+
+2. PREREQUISITES AND TOOLS NEEDED
+
+2.1 Personnel Requirements
+- NOC Level 2 technician or higher
+- Current RF safety training certification
+- Site access authorization and security clearance
+
+2.2 Required Tools and Equipment
+- Handheld VSWR analyzer (Anritsu Site Master S332E or equivalent)
+- Digital multimeter with RF probe capability
+- Torque wrench set (5-50 ft-lbs range)
+- Coaxial connector cleaning kit
+- Weather sealing materials (Scotch 2228/2242 tape)
+- Replacement jumper cables (7/16 DIN, N-type as applicable)
+- Personal protective equipment (hard hat, safety harness, RF exposure monitor)
+- Laptop with network management system access
+- Site drawings and antenna configuration documentation
+
+2.3 System Access Requirements
+- Element Management System (EMS) login credentials
+- Network Management System (NMS) administrative access
+- Remote Radio Unit (RRU) CLI access via SSH
+- Site monitoring system dashboard access
+
+3. VSWR THRESHOLD VALUES AND ALARM CONDITIONS
+
+3.1 Normal Operating Thresholds
+Technology          Normal VSWR    Warning Level    Critical Level
+GSM                 < 1.5:1        1.5-2.0:1       > 2.0:1
+UMTS                < 1.5:1        1.5-2.0:1       > 2.0:1
+LTE                 < 1.3:1        1.3-1.8:1       > 1.8:1
+5G NR               < 1.2:1        1.2-1.5:1       > 1.5:1
+
+3.2 Alarm Correlation
+- Major Alarm: VSWR > Warning Level for 15 minutes
+- Critical Alarm: VSWR > Critical Level for 5 minutes
+- Associated alarms may include: High RF Temperature, Reduced Output Power, PA Protection Active
+
+4. DETAILED TROUBLESHOOTING PROCEDURES
+
+4.1 Initial Assessment and Data Collection
+
+Step 1: Verify Alarm Conditions
+Access the Network Management System and confirm the following:
+a) Navigate to Site Management > Alarms > Active Alarms
+b) Filter by site ID and alarm type "VSWR"
+c) Record the following information:
+   - Affected sector(s) and frequency band(s)
+   - Current VSWR reading
+   - Alarm duration and frequency of occurrence
+   - Associated RF performance alarms
+
+Step 2: Historical Trend Analysis
+Execute the following NMS query to retrieve VSWR trend data:
+Command: show performance-monitoring vswr site-id [SITE_ID] sector [A/B/C] duration 72h
+Parameters: 
+- site-id: Target site identifier
+- sector: Affected sector designation
+- duration: 72-hour lookback period
+
+Review trends for:
+- Gradual degradation (indicates aging components)
+- Sudden onset (indicates physical damage or water ingress)
+- Weather correlation (indicates sealing issues)
+
+Step 3: Remote RRU Diagnostics
+Connect to the affected RRU via SSH using the following procedure:
+a) ssh admin@[RRU_IP_ADDRESS]
+b) Enter authentication credentials
+c) Execute diagnostic commands:
+
+show rf-status sector [A/B/C]
+show vswr-measurements realtime sector [A/B/C]
+show temperature-readings rf-path sector [A/B/C]
+show power-amplifier status sector [A/B/C]
+
+Record all output values for comparison with baseline measurements.
+
+4.2 Physical Inspection Procedures
+
+Step 4: Visual Inspection Checklist
+Perform systematic visual inspection of the RF path components:
+
+Antenna Inspection:
+- Check radome for cracks, holes, or deformation
+- Verify antenna mounting hardware tightness
+- Inspect for bird nests, ice accumulation, or debris
+- Document any visible damage with photographs
+
+Connector Inspection:
+- Examine all 7/16 DIN and N-type connectors for corrosion
+- Check connector alignment and proper seating
+- Verify weather boot integrity and sealing
+- Look for signs of arcing or burning around connector interfaces
+
+Coaxial Cable Inspection:
+- Trace cable runs for kinks, sharp bends, or crushing damage
+- Check cable support hardware and strain relief
+- Inspect cable jacket for cuts, abrasion, or animal damage
+- Verify proper grounding and bonding connections
+
+Step 5: Connector Torque Verification
+Using calibrated torque wrench, verify connector torque values:
+- 7/16 DIN connectors: 25-30 ft-lbs
+- N-type connectors: 12-15 ft-lbs
+- Record actual torque readings in maintenance log
+
+4.3 Electrical Testing Procedures
+
+Step 6: Segmented VSWR Testing
+Disconnect the antenna system at the RRU output and perform segmented testing:
+
+a) Connect VSWR analyzer to RRU output port
+b) Configure analyzer settings:
+   - Frequency range: Match operating band
+   - Measurement points: 401 points minimum
+   - Calibration: Perform full 2-port calibration
+c) Measure VSWR from RRU to antenna connection point
+d) Record measurements at band edges and center frequency
+
+Step 7: Antenna System Isolation Testing
+With RRU disconnected, test antenna system independently:
+a) Connect VSWR analyzer to antenna-side of jumper cable
+b) Measure VSWR across operating frequency band
+c) Compare readings to antenna manufacturer specifications
+d) Document frequency response characteristics
+
+Step 8: Jumper Cable Testing
+Test each jumper cable segment individually:
+a) Connect VSWR analyzer to cable input
+b) Terminate opposite end with precision 50-ohm load
+c) Measure insertion loss and return loss
+d) Acceptable limits: VSWR < 1.2:1, Insertion Loss < 0.5 dB per 10 feet
+
+4.4 Advanced Diagnostic Procedures
+
+Step 9: Time Domain Reflectometry (TDR) Analysis
+If VSWR analyzer supports TDR functionality:
+a) Configure TDR mode with appropriate velocity factor (0.88 for air dielectric)
+b) Set distance range to cover full RF path length
+c) Identify reflection sources and calculate distances
+d) Correlate TDR peaks with physical inspection findings
+
+Step 10: Frequency Sweep Analysis
+Perform detailed frequency response measurement:
+a) Configure swept frequency measurement across full band
+b) Identify resonant frequencies indicating specific fault types:
+   - Water ingress: Broad frequency shift
+   - Connector corrosion: Sharp resonant peaks
+   - Cable damage: Multiple reflection points
+
+5. DECISION TREE FOR COMMON SCENARIOS
+
+5.1 Scenario A: Gradual VSWR Degradation Over Time
+
+IF VSWR increase is < 0.1:1 per month AND weather correlation exists:
+   THEN proceed to connector cleaning and resealing (Section 6.1)
+
+IF VSWR increase is > 0.1:1 per month AND no weather correlation:
+   THEN suspect cable aging, proceed to cable replacement (Section 6.2)
+
+5.2 Scenario B: Sudden VSWR Increase
+
+IF VSWR increased > 0.5:1 within 24 hours AND recent weather event:
+   THEN suspect water ingress, proceed to emergency sealing (Section 6.3)
+
+IF VSWR increased > 0.5:1 within 24 hours AND no weather correlation:
+   THEN suspect physical damage, proceed to comprehensive inspection (Section 6.4)
+
+5.3 Scenario C: Intermittent VSWR Alarms
+
+IF VSWR alarms correlate with temperature variations:
+   THEN suspect thermal expansion issues, check mounting hardware (Section 6.5)
+
+IF VSWR alarms correlate with wind conditions:
+   THEN suspect loose connections, perform torque verification (Section 6.6)
+
+6. CORRECTIVE ACTION PROCEDURES
+
+6.1 Connector Cleaning and Resealing Procedure
+
+Step 1: Power Down Affected Sector
+Execute the following commands on RRU:
+configure terminal
+interface rf-port sector-[A/B/C]
+shutdown
+power-amplifier disable
+exit
+write memory
+
+Step 2: Connector Cleaning Process
+a) Remove weather boots and inspect for water intrusion
+b) Disconnect connectors using proper technique (counter-clockwise rotation)
+c) Clean connector surfaces using approved RF connector cleaner
+d) Inspect connector pins for damage or corrosion
+e) Apply thin layer of approve

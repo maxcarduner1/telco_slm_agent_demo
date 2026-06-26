@@ -1,0 +1,260 @@
+ROOT CAUSE ANALYSIS REPORT
+
+Document ID: RCA-2026-0415-001
+Classification: Internal Use
+Prepared by: Network Engineering Team
+Date: April 22, 2026
+Version: 1.0
+
+================================================================================
+
+INCIDENT IDENTIFICATION
+
+Incident ID: INC-MW-2026-0415-001
+Incident Title: Mountain West Handover Storm - April 2026
+Severity Level: Critical (Severity 1)
+Incident Duration: 6 hours 45 minutes
+Start Time: April 15, 2026 - 09:15 MST
+End Time: April 15, 2026 - 16:00 MST
+Affected Region: Mountain West Service Area
+Primary Technology: 5G NR / LTE Dual Connectivity
+
+================================================================================
+
+EXECUTIVE SUMMARY
+
+On April 15, 2026, the Mountain West region experienced a critical network incident characterized by excessive ping-pong handovers between overlapping 5G New Radio (NR) and Long Term Evolution (LTE) cells. The incident resulted in widespread Voice over LTE (VoLTE) call drops and degraded user experience across multiple cell sites in the Denver, Salt Lake City, and Phoenix metropolitan areas.
+
+The root cause was identified as overly aggressive A3 offset parameters in the handover algorithm, combined with insufficient hysteresis settings and inadequate Time-to-Trigger (TTT) values. These configuration parameters caused User Equipment (UE) to rapidly oscillate between serving cells, creating a handover storm that overwhelmed network resources and disrupted voice services.
+
+The incident was resolved through emergency parameter adjustments including hysteresis increase from 1dB to 3dB and TTT extension from 160ms to 320ms. Total customer impact affected approximately 2.3 million subscribers with an estimated revenue impact of $1.2 million.
+
+================================================================================
+
+TIMELINE OF EVENTS
+
+Detection Phase:
+09:15 MST - Network Operations Center (NOC) alarms triggered for excessive handover attempts in Denver market
+09:22 MST - Customer complaints surge reported through customer care channels
+09:28 MST - VoLTE call drop rate alerts activated across Mountain West region
+09:35 MST - Incident declared and escalated to Severity 1 status
+09:40 MST - Network Engineering team mobilized for emergency response
+
+Investigation Phase:
+09:45 MST - Initial analysis revealed abnormal handover patterns in NR-LTE dual connectivity scenarios
+10:15 MST - Performance Management System data confirmed ping-pong handover behavior
+10:30 MST - Radio Access Network (RAN) parameter audit initiated
+11:00 MST - A3 offset configuration identified as primary suspect
+11:45 MST - Correlation established between aggressive handover parameters and call drops
+12:30 MST - Root cause confirmed through detailed signal trace analysis
+
+Resolution Phase:
+13:00 MST - Emergency Change Advisory Board (CAB) convened
+13:15 MST - Parameter modification plan approved for immediate implementation
+13:30 MST - Hysteresis adjustment from 1dB to 3dB deployed to affected sites
+14:15 MST - TTT parameter increased from 160ms to 320ms across impacted cells
+14:45 MST - Initial performance improvement observed
+15:30 MST - Full service restoration confirmed
+16:00 MST - Incident officially closed after validation period
+
+================================================================================
+
+IMPACT ASSESSMENT
+
+Key Performance Indicators Affected:
+
+Handover Success Rate:
+- Normal baseline: 98.5%
+- During incident: 76.2%
+- Impact: 22.3 percentage point degradation
+
+VoLTE Call Drop Rate:
+- Normal baseline: 0.8%
+- During incident: 12.4%
+- Impact: 15.5x increase above normal levels
+
+Average Call Setup Success Rate:
+- Normal baseline: 99.2%
+- During incident: 87.6%
+- Impact: 11.6 percentage point reduction
+
+Radio Resource Control (RRC) Connection Success Rate:
+- Normal baseline: 99.1%
+- During incident: 91.3%
+- Impact: 7.8 percentage point degradation
+
+Customer Impact Metrics:
+
+Affected Subscribers: 2,347,892 unique users
+Total Dropped Calls: 156,234 voice calls
+Failed Call Attempts: 89,567 connection attempts
+Customer Complaints: 4,823 reported incidents
+Average Service Degradation Duration: 4.2 hours per subscriber
+
+Business Impact:
+
+Estimated Revenue Loss: $1,247,000
+Customer Experience Score Impact: -2.3 points
+Regulatory Reporting Requirements: FCC notification filed
+Service Level Agreement Violations: 47 enterprise customers affected
+
+================================================================================
+
+ROOT CAUSE ANALYSIS
+
+Primary Analysis Method: 5-Whys Methodology
+
+Why 1: Why did customers experience dropped VoLTE calls?
+Answer: Excessive ping-pong handovers between NR and LTE cells caused connection instability and call termination.
+
+Why 2: Why were there excessive ping-pong handovers?
+Answer: User Equipment rapidly switched between serving cells due to marginal signal conditions and aggressive handover triggering.
+
+Why 3: Why did UE rapidly switch between cells?
+Answer: A3 offset parameters were configured too aggressively, causing premature handover decisions with minimal signal strength differences.
+
+Why 4: Why were A3 offset parameters configured aggressively?
+Answer: Recent network optimization focused on maximizing throughput led to reduced handover thresholds without adequate consideration of stability margins.
+
+Why 5: Why was stability not adequately considered during optimization?
+Answer: The parameter change process lacked comprehensive impact assessment for dual connectivity scenarios and insufficient hysteresis/TTT safeguards were implemented.
+
+Contributing Factors Analysis:
+
+Technical Factors:
+- Hysteresis setting of 1dB provided insufficient margin for signal fluctuations
+- TTT value of 160ms was too short for stable handover decisions
+- Overlapping cell coverage areas created ambiguous serving cell selection
+- RF propagation variations in mountainous terrain exacerbated signal instability
+
+Process Factors:
+- Parameter optimization process focused primarily on throughput metrics
+- Limited testing of dual connectivity handover scenarios
+- Insufficient validation of parameter interactions between NR and LTE layers
+- Inadequate monitoring of handover stability metrics during optimization
+
+Environmental Factors:
+- Mountainous terrain created challenging RF propagation conditions
+- Weather conditions on incident day included atmospheric ducting effects
+- High subscriber density during morning peak hours amplified impact
+
+================================================================================
+
+CORRECTIVE ACTIONS TAKEN
+
+Immediate Actions (Completed):
+
+1. Emergency Parameter Adjustment
+   - Hysteresis increased from 1dB to 3dB across all affected sites
+   - Time-to-Trigger extended from 160ms to 320ms
+   - A3 offset values restored to conservative baseline settings
+   - Implementation completed within 2 hours of root cause identification
+
+2. Service Restoration Validation
+   - Real-time monitoring of handover success rates
+   - VoLTE call quality verification through test calls
+   - Customer complaint trend analysis confirmation
+   - Performance metric normalization validation
+
+3. Customer Communication
+   - Proactive notification sent to affected enterprise customers
+   - Social media acknowledgment and status updates published
+   - Customer care teams briefed on incident details and resolution
+   - Service credit processing initiated for qualifying accounts
+
+Short-term Actions (Completed within 48 hours):
+
+1. Comprehensive Parameter Audit
+   - Full review of handover parameters across Mountain West region
+   - Identification of similar risk configurations in other markets
+   - Documentation of current parameter baselines and rationale
+
+2. Enhanced Monitoring Implementation
+   - Deployment of additional handover stability KPIs
+   - Real-time alerting for ping-pong handover detection
+   - Dashboard creation for dual connectivity performance visibility
+
+================================================================================
+
+PREVENTIVE MEASURES AND RECOMMENDATIONS
+
+Technical Recommendations:
+
+1. Parameter Optimization Framework Enhancement
+   - Implement mandatory stability impact assessment for all handover parameter changes
+   - Establish minimum hysteresis and TTT values for dual connectivity scenarios
+   - Create parameter change validation checklist including ping-pong handover testing
+   - Develop automated parameter boundary checking in configuration management systems
+
+2. Monitoring and Alerting Improvements
+   - Deploy proactive ping-pong handover detection algorithms
+   - Implement real-time handover stability scoring metrics
+   - Create predictive analytics for handover performance degradation
+   - Establish automated parameter rollback triggers for stability violations
+
+3. Network Design Enhancements
+   - Conduct comprehensive RF optimization in mountainous terrain areas
+   - Implement advanced antenna tilting and power optimization
+   - Deploy small cell solutions to reduce handover complexity
+   - Enhance inter-layer load balancing algorithms
+
+Process Recommendations:
+
+1. Change Management Process Updates
+   - Mandate dual connectivity impact assessment for all RAN parameter changes
+   - Require stability testing in representative network conditions
+   - Implement staged rollout procedures for critical parameter modifications
+   - Establish mandatory rollback criteria and procedures
+
+2. Testing and Validation Procedures
+   - Develop comprehensive handover testing scenarios for mountainous environments
+   - Create automated test suites for dual connectivity performance validation
+   - Implement drive testing requirements for parameter optimization activities
+   - Establish customer experience validation checkpoints
+
+3. Training and Knowledge Management
+   - Conduct specialized training on dual connectivity handover optimization
+   - Develop troubleshooting guides for ping-pong handover scenarios
+   - Create knowledge base articles for similar incident response
+   - Implement cross-functional collaboration protocols for optimization activities
+
+================================================================================
+
+LESSONS LEARNED
+
+Technical Lessons:
+
+1. Dual connectivity handover optimization requires careful balance between performance and stability, with stability taking precedence in challenging RF environments.
+
+2. Hysteresis and TTT parameters serve as critical stability safeguards and should not be minimized without thorough impact analysis.
+
+3. Mountainous terrain creates unique propagation challenges that require specialized parameter tuning approaches different from urban environments.
+
+4. Real-time monitoring of handover stability metrics is essential for early detection of optimization-induced issues.
+
+Process Lessons:
+
+1. Parameter optimization activities must include comprehensive stability impact assessment beyond throughput-focused metrics.
+
+2. Change management processes should mandate testing in representative network conditions before production deployment.
+
+3. Cross-functional collaboration between optimization, operations, and customer experience teams is critical for balanced network performance.
+
+4. Incident response procedures should include rapid parameter rollback capabilities for configuration-related issues.
+
+Organizational Lessons:
+
+1. Network optimization objectives should balance multiple performance dimensions including stability, quality, and customer experience.
+
+2. Investment in predictive analytics and automated monitoring capabilities provides significant value for preventing similar incidents.
+
+3. Regular review and validation of parameter optimization strategies helps identify potential risks before they impact customers.
+
+4. Customer communication during network incidents should be proactive and transparent to maintain trust and satisfaction.
+
+================================================================================
+
+DOCUMENT APPROVAL
+
+Prepared by: John Martinez, Senior Network Engineer
+Reviewed by: Sarah

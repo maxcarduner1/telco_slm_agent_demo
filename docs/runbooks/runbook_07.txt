@@ -1,0 +1,337 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-001
+Title: Site Outage Recovery Procedure
+Revision: 3.2
+Date: November 15, 2024
+Author: Network Operations Center
+Approved By: Chief Network Operations Officer
+
+REVISION HISTORY
+
+Rev 1.0 - Initial document creation - March 2023
+Rev 2.0 - Added backhaul failover procedures - August 2023
+Rev 2.1 - Updated power system diagnostics - October 2023
+Rev 3.0 - Enhanced escalation criteria - February 2024
+Rev 3.1 - Added service restoration verification - September 2024
+Rev 3.2 - Updated CLI commands for new equipment - November 2024
+
+PURPOSE AND SCOPE
+
+This runbook provides standardized procedures for recovering telecommunications sites experiencing complete or partial outages. The document covers power system diagnostics, equipment restart sequences, backhaul failover activation, and comprehensive service restoration verification.
+
+Scope includes:
+- Cell tower sites (macro and small cell)
+- Switching centers
+- Data centers
+- Microwave relay stations
+- Fiber distribution hubs
+
+PREREQUISITES AND TOOLS NEEDED
+
+Personnel Requirements:
+- NOC Level 2 technician or higher
+- Field technician (if remote recovery fails)
+- Minimum 2 years network operations experience
+
+Required Tools and Access:
+- Network Management System (NMS) access
+- Element Management System (EMS) credentials
+- Remote terminal access (SSH/Telnet)
+- Power monitoring system access
+- Ticket management system
+- Site access credentials and security codes
+- Emergency contact directory
+- Mobile test equipment (if field dispatch required)
+
+Software Tools:
+- PuTTY or equivalent SSH client
+- Network monitoring dashboard
+- Power management interface
+- Backhaul management console
+
+INITIAL ASSESSMENT AND TRIAGE
+
+Step 1: Verify Outage Scope
+1.1 Check NMS dashboard for affected site status
+1.2 Confirm outage type:
+    - Complete site down (all services)
+    - Partial outage (specific sectors/services)
+    - Intermittent connectivity issues
+1.3 Review alarm history for 24 hours prior to outage
+1.4 Document initial findings in trouble ticket
+
+Step 2: Determine Outage Category
+2.1 Power-related outage indicators:
+    - DC power system alarms
+    - Battery voltage below 44V
+    - Rectifier failure alarms
+    - Generator status alerts
+2.2 Equipment failure indicators:
+    - Base station controller offline
+    - Radio unit failures
+    - Transport equipment down
+2.3 Backhaul connectivity issues:
+    - Microwave link down
+    - Fiber cut detected
+    - Router/switch failures
+
+POWER SYSTEM DIAGNOSTICS
+
+Step 3: Power System Assessment
+3.1 Access power monitoring system via web interface
+3.2 Check primary power feed status:
+    - AC input voltage (nominal 208-240V)
+    - Current draw readings
+    - Power factor measurements
+3.3 Verify backup power systems:
+    - Battery bank voltage (48V nominal)
+    - Battery temperature readings
+    - Charging current status
+3.4 Generator system check (if applicable):
+    - Fuel level (minimum 25% for operation)
+    - Engine parameters within normal range
+    - Auto-start functionality test
+
+Step 4: Power System Recovery Commands
+4.1 Connect to power management unit via SSH:
+    ssh admin@[POWER_MGMT_IP]
+    Password: [SITE_SPECIFIC_PWD]
+
+4.2 Check system status:
+    show power status
+    show battery status
+    show alarm summary
+
+4.3 Reset power distribution if needed:
+    power reset breaker [BREAKER_NUMBER]
+    
+4.4 Battery system reset (if required):
+    battery test start
+    battery reset protection
+
+4.5 Verify power restoration:
+    show power history
+    show load distribution
+
+EQUIPMENT RESTART SEQUENCES
+
+Step 5: Base Station Equipment Recovery
+5.1 Access base station controller:
+    telnet [BSC_IP_ADDRESS]
+    Username: noc_admin
+    Password: [ENCRYPTED_PASSWORD]
+
+5.2 Check equipment status:
+    show equipment summary
+    show alarm active
+    show interface status
+
+5.3 Controlled restart sequence:
+    shutdown graceful
+    wait 30 seconds
+    startup sequence initialize
+    
+5.4 Radio unit restart (per sector):
+    radio unit [SECTOR_ID] restart
+    wait 60 seconds between sectors
+    
+5.5 Verify equipment initialization:
+    show startup log
+    show interface operational
+
+Step 6: Transport Equipment Recovery
+6.1 Access transport router/switch:
+    ssh transport_admin@[TRANSPORT_IP]
+    
+6.2 Interface status verification:
+    show interface brief
+    show ip route summary
+    show mpls ldp neighbor
+    
+6.3 Interface reset if required:
+    interface [INTERFACE_ID]
+    shutdown
+    no shutdown
+    exit
+    
+6.4 Routing protocol restart:
+    clear ip ospf process
+    clear bgp all soft
+
+BACKHAUL FAILOVER ACTIVATION
+
+Step 7: Primary Backhaul Assessment
+7.1 Test primary microwave link:
+    ping [REMOTE_MW_IP] count 10
+    show interface microwave 0/1/0
+    show microwave link quality
+    
+7.2 Fiber backhaul verification:
+    show interface gigabitethernet 0/0/1
+    show optical power levels
+    
+Step 8: Failover Activation Decision Tree
+
+IF primary microwave link down AND fiber available:
+    8.1 Activate fiber failover:
+        configure terminal
+        router ospf 100
+        area 0 range [BACKUP_NETWORK] advertise
+        interface gigabitethernet 0/0/1
+        no shutdown
+        ip ospf cost 10
+        exit
+        
+IF both primary links down:
+    8.2 Activate satellite backup:
+        interface satellite 0/2/0
+        no shutdown
+        bandwidth 2048
+        ip address [SATELLITE_IP] [SUBNET_MASK]
+        
+IF partial connectivity available:
+    8.3 Load balancing configuration:
+        router bgp [ASN]
+        network [SITE_NETWORK] mask [SUBNET_MASK]
+        neighbor [PEER_IP] weight 200
+
+Step 9: Backhaul Verification
+9.1 Connectivity tests:
+    ping [CORE_NETWORK_IP] source [LOCAL_IP]
+    traceroute [DESTINATION_IP]
+    
+9.2 Bandwidth verification:
+    show interface statistics
+    show traffic-engineering tunnels brief
+    
+9.3 Quality metrics check:
+    show interface counters errors
+    show ip sla statistics
+
+SERVICE RESTORATION VERIFICATION
+
+Step 10: Layer 1 Verification
+10.1 Physical layer checks:
+    - All equipment LEDs showing normal status
+    - Power consumption within normal parameters
+    - Temperature readings acceptable
+    - No visible damage or loose connections
+
+Step 11: Layer 2/3 Network Verification
+11.1 Interface status verification:
+    show interface summary
+    show arp table
+    show mac address-table count
+    
+11.2 Routing verification:
+    show ip route connected
+    show ip route ospf
+    show bgp summary
+    
+11.3 MPLS verification (if applicable):
+    show mpls ldp bindings
+    show mpls traffic-eng tunnels
+
+Step 12: Service Layer Verification
+12.1 Voice services check:
+    show voice call active
+    show voice statistics
+    test voice quality [TEST_NUMBER]
+    
+12.2 Data services verification:
+    show subscribers active
+    show bandwidth utilization
+    test throughput [TEST_PROFILE]
+    
+12.3 Emergency services validation:
+    test 911 routing
+    verify E911 database connectivity
+
+Step 13: Performance Baseline Establishment
+13.1 Collect performance metrics:
+    show performance counters
+    show quality metrics summary
+    show error statistics
+    
+13.2 Compare against historical baselines:
+    - Throughput within 95% of normal
+    - Error rates below 0.01%
+    - Latency under 50ms for local traffic
+    
+13.3 Document any performance degradation
+
+ESCALATION CRITERIA AND CONTACTS
+
+Level 1 Escalation Triggers:
+- Unable to restore power within 2 hours
+- Equipment restart failures after 3 attempts
+- Backhaul failover unsuccessful
+- Safety concerns identified
+
+Level 2 Escalation Triggers:
+- Multiple site outages in same region
+- Critical infrastructure impact
+- Regulatory notification required
+- Media attention potential
+
+Level 3 Escalation Triggers:
+- Network-wide impact
+- Emergency services affected
+- Executive notification required
+
+Emergency Contacts:
+NOC Manager: +1-555-0101 (24/7)
+Field Operations: +1-555-0102
+Power Systems Expert: +1-555-0103
+Transmission Engineering: +1-555-0104
+Executive On-Call: +1-555-0105
+
+Vendor Escalation:
+Equipment Vendor: 1-800-SUPPORT
+Power Systems: 1-800-POWER-911
+Backhaul Provider: 1-800-TRANSPORT
+
+DECISION TREE FOR COMMON SCENARIOS
+
+Scenario A: Complete Site Power Loss
+- Check utility power feed
+- Verify generator operation
+- If generator failed, dispatch field team
+- If utility outage, coordinate with power company
+- Activate portable generator if available
+
+Scenario B: Partial Equipment Failure
+- Identify failed components
+- Attempt remote restart
+- Check for spare equipment availability
+- If critical service affected, expedite repair
+- Consider traffic rerouting options
+
+Scenario C: Backhaul Connectivity Issues
+- Test all available paths
+- Activate backup circuits
+- Coordinate with transport providers
+- Implement traffic engineering solutions
+- Monitor service quality continuously
+
+VERIFICATION AND CLOSURE STEPS
+
+Step 14: Final System Verification
+14.1 Complete end-to-end testing:
+    - Originate test calls from affected area
+    - Verify data session establishment
+    - Test emergency services routing
+    - Confirm SMS/MMS functionality
+    
+14.2 Performance monitoring setup:
+    - Enable enhanced monitoring for 24 hours
+    - Set temporary alarm thresholds
+    - Schedule follow-up performance review
+    
+14.3 Customer impact assessment:
+    - Review service tickets generated
+    - Analyze call completion rates
+    - Document any ongoing issues
+
+Step 15:

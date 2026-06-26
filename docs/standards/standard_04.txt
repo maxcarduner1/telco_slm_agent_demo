@@ -1,0 +1,199 @@
+TECHNICAL SUMMARY DOCUMENT
+
+3GPP TS 28.552 - PERFORMANCE MEASUREMENTS FOR 5G NR
+
+Document Reference: 3GPP TS 28.552 V17.4.0 (2022-12)
+Standard Title: Management and orchestration; 5G performance measurements
+Release: Release 17
+Document Type: Technical Specification
+Status: Approved
+
+1. SCOPE AND APPLICABILITY
+
+This technical specification defines Key Performance Indicators (KPIs) and performance measurements for 5G New Radio (NR) networks. The standard applies to:
+
+- 5G NR radio access networks operating in both standalone (SA) and non-standalone (NSA) modes
+- gNodeB (gNB) performance monitoring and optimization
+- Network slice performance assessment
+- Service-based architecture performance evaluation
+- Multi-access edge computing (MEC) performance metrics
+
+The specification covers performance measurements across five primary categories: coverage, capacity, accessibility, retainability, and mobility management.
+
+2. KEY DEFINITIONS AND ACRONYMS
+
+2.1 Primary Definitions
+
+Coverage: The geographical area where acceptable service quality is maintained with minimum signal strength of -120 dBm for RSRP
+Capacity: Maximum sustainable data throughput under specified load conditions
+Accessibility: Probability of successful service establishment within defined time constraints
+Retainability: Probability of maintaining established services without abnormal release
+Mobility: Successful handover completion rate between cells or network slices
+
+2.2 Technical Acronyms
+
+AMF - Access and Mobility Management Function
+DRB - Data Radio Bearer
+GUTI - Globally Unique Temporary Identifier
+KPI - Key Performance Indicator
+NAS - Non-Access Stratum
+PDU - Protocol Data Unit
+QoS - Quality of Service
+RRC - Radio Resource Control
+RSRP - Reference Signal Received Power
+RSRQ - Reference Signal Received Quality
+SMF - Session Management Function
+UPF - User Plane Function
+
+3. TECHNICAL SPECIFICATIONS AND PARAMETERS
+
+3.1 Coverage KPIs
+
+3.1.1 RSRP Coverage Ratio
+Formula: (Number of samples with RSRP >= -120 dBm) / (Total number of samples) × 100%
+Measurement interval: 15 minutes
+Sampling rate: 1 sample per second
+Threshold values:
+- Excellent: >= 95%
+- Good: 90% - 94.9%
+- Poor: < 90%
+
+3.1.2 RSRQ Coverage Ratio
+Formula: (Number of samples with RSRQ >= -15 dB) / (Total number of samples) × 100%
+Measurement interval: 15 minutes
+Reference threshold: -15 dB
+Target performance: >= 90%
+
+3.2 Capacity KPIs
+
+3.2.1 Cell Throughput
+Downlink capacity measurement:
+Formula: Sum of successfully transmitted bits in DRB / Measurement period
+Unit: Mbps
+Measurement granularity: Per cell, per QoS class
+Aggregation period: 15 minutes
+
+Uplink capacity measurement:
+Formula: Sum of successfully received bits in DRB / Measurement period
+Unit: Mbps
+Performance target: >= 80% of theoretical maximum
+
+3.2.2 Spectral Efficiency
+Formula: Cell throughput (bps) / (Channel bandwidth (Hz) × Number of cells)
+Unit: bps/Hz/cell
+Target values:
+- Downlink: >= 3.0 bps/Hz/cell
+- Uplink: >= 1.5 bps/Hz/cell
+
+3.3 Accessibility KPIs
+
+3.3.1 RRC Connection Setup Success Rate
+Formula: (Number of successful RRC connections) / (Number of RRC connection attempts) × 100%
+Target performance: >= 99.0%
+Measurement triggers: RRCSetupRequest and RRCSetup messages
+Time window: 10 seconds maximum setup time
+
+3.3.2 PDU Session Establishment Success Rate
+Formula: (Successful PDU sessions) / (PDU session requests) × 100%
+Target performance: >= 98.5%
+Maximum establishment time: 2.5 seconds
+Failure causes tracked: AMF rejection, SMF rejection, UPF unavailability
+
+3.4 Retainability KPIs
+
+3.4.1 RRC Connection Abnormal Release Rate
+Formula: (Abnormal RRC releases) / (Total active RRC connections) × 100%
+Target performance: <= 1.0%
+Measurement period: 1 hour
+Exclusions: Normal user-initiated releases
+
+3.4.2 PDU Session Abnormal Release Rate
+Formula: (Abnormal PDU session releases) / (Total active PDU sessions) × 100%
+Target performance: <= 0.5%
+Tracking period: Continuous during session lifetime
+
+3.5 Mobility KPIs
+
+3.5.1 Handover Success Rate
+Formula: (Successful handovers) / (Handover attempts) × 100%
+Target performance: >= 98.0%
+Types measured: Intra-gNB, inter-gNB, inter-RAT
+Maximum interruption time: 27.5 ms for intra-frequency
+
+3.5.2 Handover Preparation Time
+Formula: Time between HO decision and HO command transmission
+Target value: <= 50 ms
+Measurement accuracy: ±1 ms
+
+4. RELEVANT PROCEDURES AND MESSAGE FLOWS
+
+4.1 Coverage Measurement Procedure
+
+Step 1: Configure measurement reporting with RSRP/RSRQ thresholds
+Step 2: UE performs periodic measurements every 200 ms
+Step 3: Report measurements when threshold criteria met
+Step 4: gNB aggregates measurements over 15-minute intervals
+Step 5: Calculate coverage ratios using specified formulas
+Step 6: Generate performance reports to Operations Support System (OSS)
+
+4.2 Accessibility Measurement Flow
+
+Step 1: Monitor RRCSetupRequest messages from UE
+Step 2: Track corresponding RRCSetup or RRCReject responses
+Step 3: Measure time between request and response
+Step 4: Classify outcomes as successful or failed
+Step 5: Calculate success rates per measurement period
+Step 6: Correlate with PDU session establishment metrics
+
+4.3 Mobility Measurement Sequence
+
+Step 1: Detect handover trigger conditions
+Step 2: Initiate handover preparation phase
+Step 3: Execute handover command
+Step 4: Complete handover with target cell
+Step 5: Measure total handover duration
+Step 6: Record success/failure status and contributing factors
+
+5. IMPLEMENTATION NOTES FOR NETWORK OPERATORS
+
+5.1 Measurement Configuration Requirements
+
+- Deploy performance measurement collection points at all gNB sites
+- Ensure synchronized timing reference (GPS or network-based)
+- Configure measurement granularity based on network density
+- Implement automated threshold adjustment for seasonal variations
+- Establish baseline measurements during initial network deployment
+
+5.2 Data Collection and Storage
+
+- Minimum storage capacity: 90 days of detailed measurements
+- Data compression ratio target: 10:1 for long-term storage
+- Real-time processing capability for critical KPIs
+- Integration with existing network management systems
+- Backup and disaster recovery procedures for measurement data
+
+5.3 Performance Optimization Guidelines
+
+- Establish KPI monitoring dashboards with 5-minute refresh intervals
+- Implement automated alerting for performance degradation
+- Correlate multiple KPIs to identify root cause analysis
+- Schedule regular performance reviews with engineering teams
+- Maintain performance trending analysis for capacity planning
+
+5.4 Compliance and Reporting
+
+- Generate monthly performance reports for regulatory compliance
+- Maintain measurement accuracy within ±5% tolerance
+- Document any measurement methodology deviations
+- Provide performance data for service level agreement validation
+- Support third-party performance audits with standardized reports
+
+5.5 Troubleshooting Considerations
+
+- Verify measurement point calibration quarterly
+- Monitor for measurement gaps or anomalies
+- Implement redundant measurement collection where critical
+- Establish escalation procedures for sustained performance degradation
+- Maintain detailed logs of configuration changes affecting measurements
+
+END OF DOCUMENT

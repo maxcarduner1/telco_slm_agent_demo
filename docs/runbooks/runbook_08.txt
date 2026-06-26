@@ -1,0 +1,282 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-5G-001
+Title: Massive MIMO Beam Management Troubleshooting
+Revision: 3.2
+Date: November 2024
+Classification: Internal Use Only
+
+REVISION HISTORY
+================
+Rev 1.0 - March 2024 - Initial release - J. Martinez
+Rev 2.0 - June 2024 - Added codebook optimization procedures - S. Chen  
+Rev 2.1 - August 2024 - Updated CLI commands for software v12.3 - M. Thompson
+Rev 3.0 - October 2024 - Enhanced decision trees and escalation criteria - R. Patel
+Rev 3.2 - November 2024 - Added coverage/capacity analysis procedures - K. Johnson
+
+PURPOSE AND SCOPE
+=================
+
+This runbook provides comprehensive troubleshooting procedures for Massive MIMO beam management issues in 5G NR networks. The document covers beam pattern verification, CSI-RS configuration validation, codebook optimization, and coverage/capacity trade-off analysis.
+
+Scope includes:
+- 5G NR gNodeB Massive MIMO systems (64T64R, 128T128R configurations)
+- Beam management Layer 1/Layer 2 procedures
+- CSI-RS and SSB beam sweeping operations
+- Codebook Type I and Type II configurations
+- Coverage and capacity optimization scenarios
+
+Out of scope:
+- Hardware replacement procedures
+- RF calibration and antenna alignment
+- Core network beam management interfaces
+
+PREREQUISITES AND TOOLS NEEDED
+===============================
+
+Personnel Requirements:
+- Level 2 or higher RF optimization engineer
+- Valid network access credentials
+- Completion of 5G Massive MIMO training module MM-501
+
+Required Tools and Access:
+- Network Management System (NMS) access with beam management module
+- CLI access to gNodeB via SSH (port 22) or console
+- Spectrum analyzer with 5G NR capability (recommended: Keysight N9042B)
+- Drive test equipment with beam measurement capability
+- Performance monitoring dashboard access
+- Escalation contact list (Appendix A)
+
+Software Versions:
+- gNodeB software v12.3 or later
+- NMS beam management module v8.1 or later
+- CLI tools package v4.2 or later
+
+DETAILED TROUBLESHOOTING PROCEDURES
+===================================
+
+SECTION 1: INITIAL ASSESSMENT AND DATA COLLECTION
+--------------------------------------------------
+
+1.1 Gather Incident Information
+1. Document the following details:
+   - Site ID and sector information
+   - Time of issue onset
+   - Affected services (eMBB, URLLC, mMTC)
+   - User complaints or KPI degradation
+   - Recent configuration changes
+
+1.2 Access System Status
+1. Log into NMS beam management console:
+   URL: https://nms.company.com/beam-mgmt
+   
+2. Navigate to site overview:
+   Site Management > Massive MIMO > Site ID [XXXXX]
+
+3. Check overall beam management status:
+   Status should show "OPERATIONAL" with green indicator
+
+1.3 Collect Initial KPI Data
+1. Extract the following KPIs for the past 24 hours:
+   - RSRP distribution per beam
+   - Beam utilization percentage
+   - CSI-RS RSRP measurements
+   - Throughput per beam
+   - Handover success rate
+   - Beam switching frequency
+
+2. Document baseline values from 7 days prior for comparison
+
+SECTION 2: BEAM PATTERN VERIFICATION
+------------------------------------
+
+2.1 SSB Beam Pattern Analysis
+1. Access gNodeB CLI:
+   ssh admin@[gNodeB_IP_ADDRESS]
+   Password: [Use standard NOC credentials]
+
+2. Check SSB beam configuration:
+   show nr-ssb beam-config
+   
+   Expected output format:
+   SSB Beam Index: 0-63 (for 64T64R)
+   Azimuth Range: 0-360 degrees
+   Elevation Range: -10 to +30 degrees
+   Beam Width: 3dB beamwidth ~15 degrees
+
+3. Verify beam pattern integrity:
+   show nr-beam pattern-status
+   
+   Look for:
+   - Pattern Status: ACTIVE
+   - Calibration Status: VALID
+   - Last Update: Within 24 hours
+
+4. Check for beam pattern anomalies:
+   show nr-beam anomaly-detection
+   
+   Alert conditions:
+   - Beam gain deviation > 3dB from reference
+   - Null depth < 20dB
+   - Side lobe level > -13dB
+
+2.2 CSI-RS Beam Verification
+1. Verify CSI-RS resource configuration:
+   show nr-csi-rs resource-config
+   
+   Standard parameters:
+   - Resource blocks: 52 RBs minimum
+   - Periodicity: 20ms (adjustable 10-160ms)
+   - Density: 1 RE per RB per port
+   - Power offset: 0dB relative to PDSCH
+
+2. Check CSI-RS beam sweep operation:
+   show nr-csi-rs beam-sweep status
+   
+   Verify:
+   - Sweep Status: ACTIVE
+   - Sweep Period: 20ms default
+   - Number of beams: Matches antenna configuration
+   - Completion Rate: >95%
+
+3. Analyze CSI-RS measurement reports:
+   show nr-csi measurement-reports last-hour
+   
+   Review for:
+   - CQI distribution across beams
+   - PMI (Precoding Matrix Indicator) selection
+   - RI (Rank Indicator) values
+   - Measurement gaps or failures
+
+SECTION 3: CSI-RS CONFIGURATION CHECKS
+---------------------------------------
+
+3.1 Resource Element Mapping Verification
+1. Check CSI-RS RE mapping:
+   show nr-csi-rs re-mapping detailed
+   
+   Verify:
+   - No collision with PDCCH/PDSCH
+   - Proper frequency domain allocation
+   - Time domain symbol allocation
+   - Port mapping consistency
+
+2. Validate power allocation:
+   show nr-csi-rs power-allocation
+   
+   Standard values:
+   - CSI-RS EPRE: -3dB to +6dB relative to PDSCH EPRE
+   - Power boosting: 0-3dB for coverage enhancement
+   - Power balancing across ports: ±0.5dB
+
+3.2 Periodicity and Timing Verification
+1. Check CSI-RS transmission timing:
+   show nr-csi-rs timing-config
+   
+   Parameters to verify:
+   - Slot offset: Aligned with SSB timing
+   - Symbol position: Non-overlapping with control channels
+   - Subframe allocation: Consistent with TDD configuration
+
+2. Verify measurement timing:
+   show nr-csi measurement-timing
+   
+   Check:
+   - Measurement window: 20-40ms typical
+   - Reporting interval: 5-20ms based on mobility
+   - Processing delay: <4ms for real-time beamforming
+
+3.3 Multi-Panel Configuration Check
+1. For multi-panel deployments, verify panel coordination:
+   show nr-mimo panel-coordination
+   
+   Validate:
+   - Inter-panel synchronization: <1μs timing offset
+   - Phase alignment: ±5 degrees maximum
+   - Amplitude balance: ±1dB across panels
+
+SECTION 4: CODEBOOK OPTIMIZATION
+---------------------------------
+
+4.1 Type I Codebook Analysis
+1. Check current codebook configuration:
+   show nr-codebook type1-config
+   
+   Standard parameters:
+   - Number of antenna ports: 64, 128, or 256
+   - Codebook subset restriction: Enabled/Disabled
+   - Oversampling factor: 4 or 8
+   - Panel configuration: N1×N2 (e.g., 8×8 for 64T64R)
+
+2. Analyze PMI distribution:
+   show nr-codebook pmi-statistics hourly
+   
+   Look for:
+   - PMI usage distribution (should be relatively uniform)
+   - Dominant PMI indices (indicates potential beam bias)
+   - PMI switching frequency (high frequency may indicate instability)
+
+3. Optimize codebook subset restriction:
+   configure nr-codebook subset-restriction
+   
+   Recommended settings:
+   - For high mobility: Restrict to wideband PMI
+   - For static users: Allow subband PMI
+   - For interference mitigation: Enable null-steering vectors
+
+4.2 Type II Codebook Configuration
+1. Verify Type II codebook parameters:
+   show nr-codebook type2-config
+   
+   Key parameters:
+   - Spatial domain basis: DFT or KLT
+   - Frequency domain compression: Enabled for >100MHz BW
+   - Amplitude scaling: Linear or non-linear
+   - Phase quantization: 3-bit or 4-bit
+
+2. Check CSI feedback overhead:
+   show nr-csi feedback-overhead
+   
+   Target values:
+   - Type II overhead: <5% of uplink resources
+   - Reporting latency: <10ms
+   - Compression ratio: >4:1 for wideband reporting
+
+4.3 Adaptive Codebook Selection
+1. Enable adaptive codebook switching:
+   configure nr-codebook adaptive-selection enable
+   
+   Parameters:
+   - Switching threshold: SINR delta >2dB
+   - Hysteresis timer: 100ms
+   - Fallback mode: Type I codebook
+
+2. Monitor codebook performance:
+   show nr-codebook performance-metrics
+   
+   Track:
+   - Throughput improvement: Target >10% gain
+   - Beam alignment accuracy: >90% correlation
+   - Switching overhead: <2% resource utilization
+
+SECTION 5: COVERAGE AND CAPACITY ANALYSIS
+------------------------------------------
+
+5.1 Coverage Analysis
+1. Generate coverage heatmap:
+   generate nr-coverage heatmap sector [SECTOR_ID]
+   
+   Analysis parameters:
+   - RSRP threshold: -110dBm for coverage edge
+   - SINR threshold: 0dB for reliable service
+   - Grid resolution: 10m×10m for urban, 50m×50m for rural
+
+2. Check coverage holes:
+   show nr-coverage holes-analysis
+   
+   Identify:
+   - Areas with RSRP < -110dBm
+   - SINR dead zones < -3dB
+   - Beam coverage gaps
+
+3. Optimize

@@ -44,7 +44,7 @@ A production-ready agentic telecom network operations assistant ("TelcoGPT") bui
      │          │          │               │
      v          v          v               v
 ┌─────────┐ ┌────────┐ ┌──────────┐ ┌──────────────┐
-│  Genie  │ │Runbook │ │Standards │ │  Incident/   │
+│  SQL    │ │Runbook │ │Standards │ │  Incident/   │
 │  Agent  │ │  RAG   │ │   RAG    │ │   RCA RAG    │
 │(KPI SQL)│ │ (SLM)  │ │  (SLM)  │ │    (SLM)     │
 └────┬────┘ └───┬────┘ └────┬─────┘ └──────┬───────┘

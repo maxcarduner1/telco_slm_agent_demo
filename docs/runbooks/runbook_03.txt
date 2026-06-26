@@ -1,0 +1,231 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-2024-007
+Title: Coverage Hole Investigation and Remediation
+Version: 2.1
+Effective Date: March 15, 2024
+Next Review Date: March 15, 2025
+
+REVISION HISTORY
+Version | Date | Author | Description of Changes
+1.0 | Jan 10, 2024 | J. Martinez | Initial document creation
+1.1 | Feb 05, 2024 | S. Chen | Added automated parameter adjustment procedures
+2.0 | Feb 28, 2024 | M. Rodriguez | Updated CLI commands for new OSS platform
+2.1 | Mar 15, 2024 | J. Martinez | Added verification procedures and decision trees
+
+DOCUMENT APPROVAL
+Prepared by: Jose Martinez, Senior RF Engineer
+Reviewed by: Sarah Chen, Network Operations Manager
+Approved by: Michael Rodriguez, Director of Network Engineering
+
+1. PURPOSE AND SCOPE
+
+1.1 Purpose
+This runbook provides standardized procedures for investigating and remediating coverage holes in the cellular network. It encompasses identification, analysis, and resolution of areas with inadequate RF coverage that impact customer experience and network performance metrics.
+
+1.2 Scope
+This document applies to:
+- LTE and 5G NR coverage hole investigations
+- RF drive test execution and analysis
+- Antenna mechanical and electrical tilt optimization
+- Neighbor cell parameter adjustments
+- Coverage prediction model validation
+- Post-remediation verification procedures
+
+1.3 Definitions
+Coverage Hole: Geographic area where signal strength falls below -110 dBm for LTE or -115 dBm for 5G NR
+RSRP: Reference Signal Received Power
+RSRQ: Reference Signal Received Quality
+SINR: Signal to Interference plus Noise Ratio
+PCI: Physical Cell Identity
+TAC: Tracking Area Code
+
+2. PREREQUISITES AND TOOLS
+
+2.1 Personnel Requirements
+- RF Engineer Level II or higher certification
+- Valid network access credentials
+- Current safety training certification for field work
+
+2.2 System Access Requirements
+- OSS/BSS system login credentials
+- SON (Self Organizing Network) platform access
+- Drive test tool administrator privileges
+- Network planning tool access
+
+2.3 Required Tools and Equipment
+Hardware:
+- Calibrated drive test equipment (TEMS Investigation or equivalent)
+- GPS-enabled measurement device
+- Laptop with network planning software
+- Safety equipment for tower access if required
+
+Software:
+- Network Management System (NMS) v12.3 or higher
+- Coverage prediction tool (Atoll v3.4.1 or Planet v7.2)
+- Drive test analysis software
+- Parameter optimization tool
+
+2.4 Reference Documents
+- Network Design Standards NDS-RF-001
+- Antenna Pattern Database APD-2024-Q1
+- Frequency Planning Guidelines FPG-2024-Rev3
+
+3. DETAILED PROCEDURES
+
+3.1 Coverage Hole Identification and Initial Assessment
+
+Step 1: Access Network Performance Dashboard
+1. Log into NMS using assigned credentials
+2. Navigate to Performance Management > Coverage Analysis
+3. Execute query for coverage holes in target area:
+   Command: show coverage-analysis area-id [AREA_ID] threshold-rsrp -110 time-window 24h
+
+Step 2: Validate Coverage Hole Reports
+1. Filter results by confidence level > 85%
+2. Exclude temporary outages using command:
+   filter exclude outage-duration < 4h
+3. Generate coverage hole report:
+   generate report coverage-holes format csv output-file coverage_holes_[DATE].csv
+
+Step 3: Prioritize Coverage Holes
+Priority criteria (High to Low):
+- Highway corridors and major roads
+- Residential areas with population density > 1000/sq km
+- Commercial districts during business hours
+- Rural areas with existing customer complaints
+
+3.2 RF Drive Test Execution
+
+Step 1: Pre-Drive Test Preparation
+1. Calibrate drive test equipment using reference cell:
+   calibrate equipment reference-cell [CELL_ID] expected-rsrp -75
+2. Configure measurement parameters:
+   - LTE measurement interval: 1 second
+   - 5G NR measurement interval: 1 second
+   - GPS logging interval: 1 second
+   - Minimum speed threshold: 5 mph
+
+Step 2: Execute Drive Test Route
+1. Plan route covering 500m radius around reported coverage hole
+2. Drive at consistent speed of 25-35 mph on roads, 5-10 mph in parking areas
+3. Record measurements for minimum 15 minutes in coverage hole area
+4. Log serving cell changes and handover events
+
+Step 3: Drive Test Data Analysis
+1. Import drive test data into analysis tool
+2. Generate coverage maps with following thresholds:
+   - Excellent: RSRP > -85 dBm
+   - Good: RSRP -85 to -100 dBm
+   - Fair: RSRP -100 to -110 dBm
+   - Poor: RSRP < -110 dBm
+3. Identify areas with RSRP < -110 dBm for further analysis
+
+3.3 Root Cause Analysis
+
+Step 1: Analyze Serving Cell Performance
+1. Query serving cell statistics:
+   show cell-stats cell-id [SERVING_CELL_ID] kpi rsrp,rsrq,sinr period 7d
+2. Check cell availability:
+   show cell-status cell-id [SERVING_CELL_ID] include-alarms
+3. Verify antenna configuration:
+   show antenna-config cell-id [SERVING_CELL_ID] include-tilt,azimuth,height
+
+Step 2: Neighbor Cell Analysis
+1. List neighbor cells within 5km radius:
+   show neighbors cell-id [SERVING_CELL_ID] radius 5km sort-by distance
+2. Check neighbor cell loading:
+   show cell-load neighbors [NEIGHBOR_LIST] period 24h
+3. Identify potential interfering cells:
+   show interference-matrix cell-id [SERVING_CELL_ID] threshold -6db
+
+Step 3: Coverage Prediction Validation
+1. Load current network configuration into planning tool
+2. Run coverage prediction for target area:
+   predict coverage area [LAT_MIN,LAT_MAX,LON_MIN,LON_MAX] resolution 20m
+3. Compare predicted vs. measured coverage:
+   compare prediction measurement file [DRIVE_TEST_FILE] tolerance 3db
+
+3.4 Remediation Decision Tree
+
+Decision Point 1: Is the coverage hole due to insufficient signal strength?
+- If YES: Proceed to Section 3.5 (Antenna Optimization)
+- If NO: Go to Decision Point 2
+
+Decision Point 2: Is the coverage hole due to interference?
+- If YES: Proceed to Section 3.6 (Interference Mitigation)
+- If NO: Go to Decision Point 3
+
+Decision Point 3: Is the coverage hole due to neighbor cell configuration?
+- If YES: Proceed to Section 3.7 (Neighbor Parameter Adjustment)
+- If NO: Escalate to RF Engineering Team (Section 5.1)
+
+3.5 Antenna Tilt Optimization
+
+Step 1: Calculate Optimal Tilt
+1. Determine distance to coverage hole center from serving cell
+2. Calculate required downtilt using formula:
+   Optimal_Tilt = arctan(antenna_height / distance_to_coverage_hole)
+3. Account for terrain elevation differences
+
+Step 2: Implement Tilt Adjustment
+For Remote Electrical Tilt (RET):
+1. Access RET control system:
+   connect ret-controller cell-id [CELL_ID]
+2. Query current tilt setting:
+   show tilt current
+3. Adjust tilt in 0.5-degree increments:
+   set tilt [NEW_TILT_VALUE] sector [A/B/C]
+4. Confirm tilt change:
+   show tilt current verify
+
+For Mechanical Tilt (requires field visit):
+1. Create work order for tower crew
+2. Specify required mechanical tilt adjustment
+3. Schedule during low-traffic hours (typically 2-6 AM)
+
+Step 3: Monitor Impact
+1. Wait 30 minutes for network stabilization
+2. Monitor KPIs using command:
+   monitor cell-kpi cell-id [CELL_ID] metrics rsrp,throughput,handover-success interval 5min duration 2h
+3. Check for adverse impact on adjacent areas
+
+3.6 Interference Mitigation
+
+Step 1: Identify Interference Source
+1. Analyze PCI collision report:
+   show pci-conflicts area [AREA_ID] include-neighbors
+2. Check for co-channel interference:
+   analyze interference cell-id [CELL_ID] frequency [EARFCN] threshold -6db
+3. Identify mod-3 interference for LTE:
+   show mod3-interference cell-id [CELL_ID] radius 10km
+
+Step 2: Implement PCI Changes
+1. Generate PCI optimization plan:
+   optimize pci area [AREA_ID] algorithm automatic conflicts-threshold 0
+2. Implement PCI changes during maintenance window:
+   set pci cell-id [CELL_ID] new-pci [NEW_PCI_VALUE] effective-time [TIMESTAMP]
+3. Update neighbor lists:
+   update neighbors cell-id [CELL_ID] add-pci [NEW_PCI_VALUE] remove-pci [OLD_PCI_VALUE]
+
+Step 3: Power Adjustment
+1. Reduce transmit power of interfering cell:
+   set tx-power cell-id [INTERFERING_CELL_ID] power-reduction 3db
+2. Monitor impact on coverage:
+   monitor coverage cell-id [INTERFERING_CELL_ID] threshold -105dbm interval 15min
+
+3.7 Neighbor Cell Parameter Adjustment
+
+Step 1: Analyze Handover Performance
+1. Generate handover statistics:
+   show handover-stats source-cell [CELL_ID] period 24h include-failures
+2. Identify weak neighbor relationships:
+   show weak-neighbors cell-id [CELL_ID] threshold rsrp -105dbm attempts < 5
+
+Step 2: Add Missing Neighbors
+1. Identify candidate neighbor cells:
+   find neighbor-candidates cell-id [CELL_ID] radius 15km rsrp-threshold -110dbm
+2. Add neighbor relationships:
+   add neighbor source-cell [SOURCE_CELL_ID] target-cell [TARGET_CELL_ID] priority high
+3. Configure handover parameters:
+   set han

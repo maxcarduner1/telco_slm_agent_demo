@@ -22,7 +22,24 @@ resources:
             client: "5"
             dependencies:
               - databricks-vectorsearch
+        - environment_key: serverless_endpoint_deploy
+          spec:
+            client: "5"
+            dependencies:
+              - sentence-transformers>=3.0.0
+              - transformers>=4.44.0
+              - accelerate>=0.30.0
+              - torch>=2.0.0
+              - databricks-vectorsearch
       tasks:
+        # Runs immediately at job start, in parallel with generate_kpi_data.
+        # No explicit depends_on — 04_create_vs_indexes follows the 01→02→03→04
+        # chain (30–45 min), giving this task time to complete first.
+        - task_key: provision_endpoints
+          notebook_task:
+            notebook_path: ./notebooks/00_provision_endpoints.py
+          environment_key: serverless_endpoint_deploy
+
         - task_key: generate_kpi_data
           notebook_task:
             notebook_path: ./notebooks/01_generate_kpi_data.py

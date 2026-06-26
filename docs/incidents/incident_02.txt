@@ -1,0 +1,204 @@
+ROOT CAUSE ANALYSIS REPORT
+
+RCA: Southern California Coverage Degradation - May 2026
+
+INCIDENT IDENTIFICATION
+Incident ID: INC-2026-0515-001
+Severity Level: 2 (High)
+Incident Start Time: May 15, 2026 - 06:42 PDT
+Incident End Time: May 17, 2026 - 14:30 PDT
+Total Duration: 55 hours 48 minutes
+Report Prepared By: Network Engineering Team
+Report Date: May 24, 2026
+Report Version: 1.0
+
+EXECUTIVE SUMMARY
+
+On May 15, 2026, the Southern California network experienced significant coverage degradation across five cell sites following heavy rainfall in the region. The incident was triggered by water ingress into Type-N RF connectors, causing elevated Voltage Standing Wave Ratio (VSWR) alarms and subsequent automatic power reduction on affected antenna sectors. The degradation resulted in a 4-6% coverage loss across impacted areas, affecting approximately 47,000 subscribers and causing measurable service quality impacts. Root cause analysis identified inadequate weatherproofing of Type-N connectors as the primary failure point, exacerbated by aging infrastructure and insufficient preventive maintenance protocols. Complete resolution required emergency connector replacement and comprehensive weatherproofing upgrades across all affected sites.
+
+TIMELINE OF EVENTS
+
+Detection Phase:
+May 15, 2026 - 06:42 PDT: First VSWR alarm triggered at Site ID LAX-4472 (Torrance), Sector 2, indicating VSWR threshold exceeded (>2.0:1)
+
+May 15, 2026 - 06:58 PDT: Additional VSWR alarms triggered at four additional sites:
+- Site ID LAX-4481 (Carson), Sectors 1 and 3
+- Site ID LAX-4495 (Gardena), Sector 2
+- Site ID LAX-4503 (Hawthorne), Sectors 1 and 2
+- Site ID LAX-4517 (El Segundo), Sector 3
+
+May 15, 2026 - 07:15 PDT: Network Operations Center (NOC) escalates incident to Severity Level 2 due to multiple site impact
+
+May 15, 2026 - 07:22 PDT: Automated power reduction activated on affected sectors (reduced to 50% power to protect equipment)
+
+Investigation Phase:
+May 15, 2026 - 08:30 PDT: Field Engineering Team dispatched to investigate affected sites
+
+May 15, 2026 - 10:45 PDT: Initial site inspection at LAX-4472 reveals water accumulation in Type-N connector housings
+
+May 15, 2026 - 11:20 PDT: Pattern analysis confirms all affected sites experienced similar connector water ingress
+
+May 15, 2026 - 12:00 PDT: Weather correlation analysis confirms heavy rainfall (2.3 inches in 6 hours) preceded all alarm events
+
+May 15, 2026 - 14:30 PDT: Root cause identified as inadequate weatherproofing of Type-N connectors allowing water ingress
+
+Resolution Phase:
+May 15, 2026 - 16:00 PDT: Emergency parts procurement initiated for Type-N connectors and weatherproofing materials
+
+May 16, 2026 - 08:00 PDT: Field teams begin connector replacement at all affected sites
+
+May 16, 2026 - 18:45 PDT: Three sites (LAX-4472, LAX-4495, LAX-4517) restored to full power operation
+
+May 17, 2026 - 11:20 PDT: Site LAX-4481 restoration completed
+
+May 17, 2026 - 14:30 PDT: Final site LAX-4503 restoration completed, all VSWR alarms cleared
+
+IMPACT ASSESSMENT
+
+Key Performance Indicator Impact:
+- Coverage Area Reduction: 4-6% in affected sectors
+- Call Setup Success Rate: Decreased from 99.2% to 96.8% in impacted areas
+- Data Throughput: Average reduction of 15-20% due to power limitations
+- Handover Success Rate: Decreased from 98.9% to 96.1% at cell boundaries
+- Customer Complaint Volume: 340% increase in affected geographic areas
+
+Customer Impact Analysis:
+- Total Affected Subscribers: Approximately 47,000
+- Voice Service Impact: 2,847 failed call attempts attributed to coverage gaps
+- Data Service Impact: 15,600 sessions experienced degraded performance
+- Emergency Services: 23 E911 calls required alternate routing
+- Business Customer Impact: 12 enterprise customers reported service issues
+
+Geographic Impact:
+- Primary Impact Zone: 47 square miles across South Bay area
+- Secondary Impact Zone: 23 square miles with marginal coverage degradation
+- Critical Infrastructure: Los Angeles International Airport approach corridors experienced reduced coverage redundancy
+
+Financial Impact:
+- Emergency Repair Costs: $47,300
+- Lost Revenue (estimated): $23,800
+- Customer Credits Issued: $8,900
+- Total Financial Impact: $79,000
+
+ROOT CAUSE ANALYSIS
+
+Primary Root Cause Analysis Using 5-Whys Method:
+
+Problem Statement: Multiple cell sites experienced coverage degradation due to VSWR alarms
+
+Why 1: Why did VSWR alarms trigger?
+Answer: Water ingress into Type-N RF connectors caused impedance mismatch
+
+Why 2: Why did water enter the Type-N connectors?
+Answer: Inadequate weatherproofing allowed moisture penetration during heavy rainfall
+
+Why 3: Why was the weatherproofing inadequate?
+Answer: Weatherproofing materials had degraded beyond effective protection levels
+
+Why 4: Why had the weatherproofing materials degraded?
+Answer: Preventive maintenance schedules did not include regular weatherproofing inspection and replacement
+
+Why 5: Why were weatherproofing inspections not included in preventive maintenance?
+Answer: Maintenance procedures focused on electronic components rather than environmental protection systems
+
+Root Cause: Insufficient preventive maintenance protocols for environmental protection systems, specifically weatherproofing of RF connectors
+
+Contributing Factors Analysis:
+
+Equipment Factors:
+- Type-N connectors installed 4-6 years ago approaching end of weatherproofing lifecycle
+- Original weatherproofing tape and sealant materials showing UV degradation
+- Connector torque specifications may have loosened over time allowing gap formation
+
+Environmental Factors:
+- Unusually heavy rainfall (2.3 inches in 6 hours) exceeded typical weatherproofing design limits
+- Recent temperature fluctuations caused expansion/contraction cycles affecting seal integrity
+- Coastal environment with salt air accelerated weatherproofing material degradation
+
+Process Factors:
+- Preventive maintenance focused on equipment performance rather than environmental protection
+- No systematic weatherproofing inspection schedule established
+- Lack of proactive connector VSWR trending to identify degradation patterns
+
+Human Factors:
+- Field technicians not trained on weatherproofing inspection techniques
+- No standardized weatherproofing replacement procedures documented
+- Insufficient escalation criteria for environmental protection concerns
+
+CORRECTIVE ACTIONS TAKEN
+
+Immediate Actions (Completed):
+1. Replaced all damaged Type-N connectors at five affected sites
+2. Applied new weatherproofing materials using improved sealing techniques
+3. Restored full power operation to all affected sectors
+4. Verified VSWR measurements within acceptable parameters (<1.5:1)
+5. Conducted comprehensive RF performance testing post-restoration
+
+Short-term Actions (Completed within 30 days):
+1. Implemented emergency weatherproofing inspection protocol for all Southern California sites
+2. Established expedited parts inventory for Type-N connectors and weatherproofing materials
+3. Created rapid response team for weather-related RF issues
+4. Enhanced monitoring thresholds for VSWR trending analysis
+5. Developed field inspection checklist for connector weatherproofing assessment
+
+PREVENTIVE MEASURES AND RECOMMENDATIONS
+
+Preventive Maintenance Enhancements:
+1. Establish quarterly weatherproofing inspection schedule for all outdoor RF connections
+2. Implement annual Type-N connector replacement program based on installation age
+3. Create environmental protection maintenance procedures with specific torque and sealing requirements
+4. Develop weatherproofing material lifecycle tracking system
+
+Monitoring and Alerting Improvements:
+1. Implement proactive VSWR trending with early warning thresholds (>1.8:1)
+2. Establish weather correlation monitoring to predict potential impact events
+3. Create automated inspection scheduling based on environmental exposure factors
+4. Deploy additional environmental sensors at critical sites
+
+Training and Documentation:
+1. Develop comprehensive weatherproofing training program for field technicians
+2. Create standardized weatherproofing procedures and quality checkpoints
+3. Establish certification requirements for connector installation and maintenance
+4. Document lessons learned in technical training materials
+
+Infrastructure Improvements:
+1. Evaluate upgrade to sealed connector systems for high-exposure locations
+2. Consider environmental enclosures for critical RF connection points
+3. Implement redundant weatherproofing layers for coastal environment sites
+4. Establish material standards for UV-resistant weatherproofing compounds
+
+Process Improvements:
+1. Integrate environmental protection into standard preventive maintenance workflows
+2. Create escalation procedures for environmental protection concerns
+3. Establish quality assurance checkpoints for weatherproofing work
+4. Develop supplier qualification requirements for weatherproofing materials
+
+LESSONS LEARNED
+
+Technical Lessons:
+1. Environmental protection systems require equal attention to electronic component maintenance
+2. Weatherproofing materials have finite lifecycles that must be actively managed
+3. Heavy rainfall events can expose latent weatherproofing vulnerabilities across multiple sites simultaneously
+4. VSWR monitoring provides early indication of connector degradation when properly configured
+
+Operational Lessons:
+1. Preventive maintenance programs must address all failure modes, not just equipment wear
+2. Geographic clustering of similar issues indicates systematic rather than random failures
+3. Emergency response effectiveness depends on pre-positioned inventory and trained personnel
+4. Customer impact can be significant even with automated protection systems activated
+
+Process Lessons:
+1. Maintenance procedures should be holistic, addressing both performance and protection requirements
+2. Training programs must include environmental factors affecting equipment reliability
+3. Supplier relationships are critical for emergency parts availability during widespread events
+4. Documentation standards should include environmental protection specifications
+
+Strategic Lessons:
+1. Climate resilience requires proactive infrastructure hardening beyond minimum specifications
+2. Investment in preventive maintenance provides superior ROI compared to reactive repairs
+3. Cross-functional coordination between engineering, operations, and field teams improves incident response
+4. Systematic approach to infrastructure lifecycle management prevents cascading failures
+
+CONCLUSION
+
+The Southern California coverage degradation incident of May 2026 demonstrates the critical importance of comprehensive preventive maintenance programs that address environmental protection systems alongside electronic components. While the immediate technical resolution was successful, the incident revealed systematic gaps in weatherpro

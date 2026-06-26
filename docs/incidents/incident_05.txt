@@ -1,0 +1,167 @@
+ROOT CAUSE ANALYSIS REPORT
+
+RCA: Great Plains Throughput Degradation - May 2026
+
+INCIDENT IDENTIFICATION
+Incident ID: INC-2026-0512-001
+Severity Level: 2 (High)
+Service Impact: Regional Network Performance Degradation
+Duration: 4 hours 23 minutes (14:37 - 19:00 CDT)
+Date Range: May 12, 2026
+
+EXECUTIVE SUMMARY
+
+On May 12, 2026, the Great Plains regional network experienced significant throughput degradation affecting three high-traffic cell sites during peak graduation ceremony traffic. Physical Resource Block (PRB) utilization exceeded 85% threshold, resulting in reduced data speeds and increased call setup delays for approximately 12,000 subscribers in the coverage area. Investigation revealed that carrier aggregation (CA) was not properly configured on the affected sites, preventing automatic capacity expansion during high-demand periods. The incident was resolved by enabling carrier aggregation on all three sites and implementing enhanced monitoring protocols.
+
+TIMELINE OF EVENTS
+
+14:37 CDT - Initial Detection
+- Network Operations Center (NOC) received automated alerts for PRB utilization exceeding 85% on sites GP-001, GP-003, and GP-007
+- Customer complaints began increasing through call center channels
+- Regional Field Engineer dispatched for initial assessment
+
+14:45 CDT - Escalation and Investigation Begin
+- Incident escalated to Severity 2 status
+- Radio Frequency (RF) Engineering team engaged
+- Initial traffic analysis shows 340% increase over baseline for affected sector coverage areas
+
+15:12 CDT - Root Cause Investigation
+- RF team identifies carrier aggregation not active on affected sites
+- Configuration audit initiated across all three locations
+- Temporary traffic management measures implemented
+
+16:30 CDT - Corrective Action Implementation
+- Carrier aggregation enabled on site GP-001
+- Immediate 35% improvement in PRB utilization observed
+- Process repeated for remaining two sites
+
+17:45 CDT - Full Resolution
+- All three sites showing normal PRB utilization levels
+- Customer complaint volume returning to baseline
+- Performance monitoring confirms stable operations
+
+19:00 CDT - Incident Closure
+- Final validation of network performance completed
+- All KPIs within acceptable thresholds
+- Incident officially closed
+
+IMPACT ASSESSMENT
+
+Network Performance Metrics:
+- Peak PRB Utilization: 94.2% (normal threshold: <75%)
+- Average Download Throughput: Reduced by 68% during peak period
+- Average Upload Throughput: Reduced by 52% during peak period
+- Call Setup Success Rate: Decreased from 99.1% to 96.3%
+- Packet Loss Rate: Increased from 0.1% to 2.8%
+
+Customer Impact:
+- Affected Subscribers: Approximately 12,000 active users
+- Geographic Coverage: 45 square mile area encompassing three university campuses
+- Service Degradation Duration: 4 hours 23 minutes
+- Customer Complaints: 847 calls received during incident window
+- Estimated Revenue Impact: $23,400 in service credits and compensation
+
+Business Impact:
+- Network Availability SLA breach for affected region
+- Increased operational costs due to emergency response
+- Potential customer churn risk in competitive market area
+
+ROOT CAUSE ANALYSIS - 5 WHYS METHODOLOGY
+
+Why 1: Why did network throughput degrade during the graduation event?
+Answer: PRB utilization exceeded 85% threshold due to increased traffic demand, causing congestion and reduced service quality.
+
+Why 2: Why did PRB utilization exceed acceptable thresholds?
+Answer: The network was unable to automatically expand capacity despite having additional spectrum resources available.
+
+Why 3: Why was the network unable to expand capacity automatically?
+Answer: Carrier aggregation was not enabled on the three high-traffic sites, preventing the use of additional spectrum bands.
+
+Why 4: Why was carrier aggregation not enabled on these sites?
+Answer: Configuration oversight during initial site deployment resulted in CA parameters not being activated in the base station software.
+
+Why 5: Why was this configuration oversight not detected during deployment?
+Answer: The site acceptance testing checklist did not include verification of carrier aggregation configuration, and post-deployment audits were not comprehensive enough to identify the missing configuration.
+
+ROOT CAUSE: Inadequate deployment procedures and testing protocols failed to ensure carrier aggregation was properly configured during initial site commissioning, combined with insufficient ongoing configuration auditing processes.
+
+CORRECTIVE ACTIONS TAKEN
+
+Immediate Actions:
+1. Enabled carrier aggregation on sites GP-001, GP-003, and GP-007
+2. Verified CA functionality through drive testing and performance monitoring
+3. Implemented temporary additional monitoring for affected sites
+4. Processed customer service credits for affected subscribers
+
+Short-term Actions:
+5. Conducted comprehensive audit of all 127 sites in Great Plains region
+6. Identified and corrected 8 additional sites with similar CA configuration issues
+7. Updated site acceptance testing procedures to include mandatory CA verification
+8. Enhanced NOC monitoring thresholds for PRB utilization during special events
+
+PREVENTIVE MEASURES AND RECOMMENDATIONS
+
+Process Improvements:
+1. Implement mandatory carrier aggregation verification in site acceptance testing checklist
+2. Establish quarterly configuration audits for all critical network parameters
+3. Develop automated configuration compliance monitoring system
+4. Create special event traffic forecasting and capacity planning procedures
+
+Technical Enhancements:
+5. Deploy predictive analytics for traffic pattern recognition
+6. Implement automated carrier aggregation health checks
+7. Establish dynamic capacity allocation based on real-time demand
+8. Upgrade network management system with enhanced configuration tracking
+
+Training and Documentation:
+9. Conduct refresher training for field engineers on CA configuration procedures
+10. Update network deployment documentation with enhanced verification steps
+11. Create troubleshooting guides for capacity-related performance issues
+12. Establish cross-functional communication protocols for special events
+
+Monitoring and Alerting:
+13. Implement proactive alerting for sites approaching PRB utilization thresholds
+14. Create dashboard for real-time carrier aggregation status monitoring
+15. Establish automated escalation procedures for capacity-related incidents
+16. Deploy machine learning algorithms for anomaly detection in traffic patterns
+
+LESSONS LEARNED
+
+Technical Lessons:
+- Carrier aggregation configuration must be verified during every site deployment
+- Automated configuration compliance checking is essential for large-scale networks
+- Special event traffic patterns require proactive capacity planning and monitoring
+- Real-time performance monitoring must include all critical configuration parameters
+
+Process Lessons:
+- Site acceptance testing procedures require regular review and enhancement
+- Configuration audits should be performed on a scheduled basis, not just reactively
+- Cross-functional communication is critical during high-traffic events
+- Customer impact can be minimized through faster detection and response procedures
+
+Organizational Lessons:
+- Investment in automated monitoring and configuration management tools provides significant ROI
+- Regular training and procedure updates are necessary to maintain network reliability
+- Proactive capacity planning is more cost-effective than reactive problem resolution
+- Documentation and knowledge sharing prevent recurring issues across similar sites
+
+CONCLUSION
+
+The Great Plains throughput degradation incident highlighted critical gaps in our network deployment and ongoing maintenance procedures. While the immediate technical resolution was successful, the incident revealed systemic issues in configuration management and capacity planning processes. Implementation of the recommended preventive measures will significantly reduce the likelihood of similar incidents and improve overall network reliability and customer experience.
+
+The incident response demonstrated effective escalation and technical resolution capabilities, but earlier detection through enhanced monitoring could have reduced customer impact. Moving forward, the combination of improved processes, enhanced automation, and better training will strengthen our network operations and prevent similar configuration-related performance issues.
+
+REPORT PREPARED BY:
+Sarah Chen, Senior RF Engineer
+Network Operations Division
+Great Plains Regional Office
+
+REVIEWED BY:
+Michael Rodriguez, Regional Network Manager
+Jennifer Park, Quality Assurance Manager
+
+APPROVED BY:
+David Thompson, Director of Network Operations
+
+Date: May 18, 2026
+Document Classification: Internal Use Only

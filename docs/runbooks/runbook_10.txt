@@ -1,0 +1,279 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-RB-2024-007
+Title: Backhaul Capacity Planning and Monitoring
+Version: 2.1
+Effective Date: January 15, 2024
+Next Review Date: July 15, 2024
+
+REVISION HISTORY
+Version | Date | Author | Changes
+1.0 | March 10, 2023 | J. Martinez | Initial document creation
+1.1 | June 22, 2023 | S. Chen | Added microwave link procedures
+1.2 | September 8, 2023 | M. Rodriguez | Updated escalation contacts
+2.0 | November 30, 2023 | J. Martinez | Major revision - added decision trees
+2.1 | January 15, 2024 | K. Thompson | Updated CLI commands for new equipment
+
+1. PURPOSE AND SCOPE
+
+1.1 Purpose
+This runbook provides standardized procedures for monitoring, analyzing, and planning backhaul network capacity across fiber optic and microwave transmission systems. It establishes consistent methodologies for capacity utilization trending, performance monitoring, error investigation, and upgrade trigger criteria.
+
+1.2 Scope
+This document covers:
+- Fiber optic backhaul links (10G, 40G, 100G interfaces)
+- Microwave backhaul systems (6-42 GHz bands)
+- Ethernet transport networks
+- Capacity planning processes
+- Performance degradation investigation
+- Upgrade decision criteria
+
+1.3 Exclusions
+- Customer premise equipment monitoring
+- Core network routing protocols
+- Security incident response procedures
+
+2. PREREQUISITES AND TOOLS
+
+2.1 Required Access Levels
+- Network Management System (NMS) read/write access
+- CLI access to transport equipment (Level 2 or higher)
+- Performance monitoring database access
+- Capacity planning tool access
+
+2.2 Required Tools and Systems
+- Primary NMS: OptiView Network Manager v8.2
+- Secondary monitoring: SolarWinds NPM v2023.4
+- CLI tools: SecureCRT v9.1 or PuTTY v0.78
+- Performance database: InfluxDB v2.7
+- Capacity planning: NetCrunch Capacity Planner v12.1
+- Ticketing system: ServiceNow v2023.1
+
+2.3 Required Knowledge
+- OSI Layer 1-3 protocols
+- DWDM/OTN fundamentals
+- Microwave propagation principles
+- SNMP monitoring concepts
+- Ethernet frame structure
+
+3. MONITORING PROCEDURES
+
+3.1 Daily Capacity Monitoring
+
+3.1.1 Fiber Utilization Check
+Step 1: Access OptiView Network Manager
+- Navigate to Transport > Fiber Links > Utilization Dashboard
+- Select time range: Last 24 hours
+- Filter by circuit type: Backhaul circuits only
+
+Step 2: Identify high utilization circuits
+- Sort by Peak Utilization (descending)
+- Flag circuits exceeding 70% utilization
+- Document circuit IDs in monitoring log
+
+Step 3: Generate utilization report
+- Export data to CSV format
+- Include fields: Circuit ID, Peak %, Average %, Duration above 70%
+- Save to network drive: \\netops\reports\daily\capacity\
+
+3.1.2 Microwave Link Performance Check
+Step 1: Access microwave monitoring dashboard
+- Login to SolarWinds NPM
+- Navigate to Wireless > Microwave Links
+- Select view: Performance Summary
+
+Step 2: Check RSL (Received Signal Level) values
+- Acceptable range: -30 dBm to -65 dBm
+- Warning threshold: -60 dBm
+- Critical threshold: -65 dBm
+
+Step 3: Verify link availability
+- Target availability: 99.95%
+- Check for fade events in last 24 hours
+- Document any links below 99.9% availability
+
+3.2 Weekly Capacity Trending
+
+3.2.1 Fiber Growth Analysis
+Step 1: Generate 30-day trend report
+- Access InfluxDB query interface
+- Execute query:
+  SELECT mean("utilization") FROM "fiber_stats" 
+  WHERE time >= now() - 30d 
+  GROUP BY time(1d), "circuit_id"
+
+Step 2: Calculate growth rates
+- For each circuit, calculate daily growth percentage
+- Formula: ((Current_Util - Previous_Util) / Previous_Util) * 100
+- Flag circuits with >5% weekly growth
+
+Step 3: Project capacity exhaustion dates
+- Use linear regression on 30-day data
+- Calculate days until 85% utilization threshold
+- Prioritize circuits reaching threshold within 90 days
+
+3.2.2 Microwave Capacity Assessment
+Step 1: Analyze modulation efficiency trends
+- Check adaptive modulation statistics
+- Document frequency of modulation downgrades
+- Acceptable downgrade rate: <2% of time
+
+Step 2: Weather correlation analysis
+- Cross-reference performance with weather data
+- Identify rain fade patterns
+- Update link budgets if necessary
+
+4. ERROR INVESTIGATION PROCEDURES
+
+4.1 Ethernet CRC Error Investigation
+
+4.1.1 Initial Error Detection
+Step 1: Access interface statistics via CLI
+- Connect to transport equipment via SSH
+- Execute command: show interface ethernet 1/1/1 statistics
+- Look for CRC error counters
+
+Step 2: Baseline error rates
+- Acceptable CRC error rate: <1 error per 10^12 bits
+- Calculate current error rate using formula:
+  Error_Rate = (CRC_Errors / Total_Bits_Transmitted)
+
+Step 3: Historical comparison
+- Query last 7 days of error statistics
+- Command: show interface ethernet 1/1/1 statistics history
+- Identify if errors are increasing trend
+
+4.1.2 Root Cause Analysis
+Step 1: Physical layer verification
+- Check optical power levels
+- Command: show interface ethernet 1/1/1 optics
+- Verify Tx/Rx power within specifications:
+  * Single-mode fiber: -3 dBm to +2 dBm (Tx), -14 dBm to +1 dBm (Rx)
+
+Step 2: Cable plant testing
+- If optical power abnormal, schedule fiber testing
+- Required tests: OTDR, insertion loss, return loss
+- Coordinate with field technician
+
+Step 3: Equipment diagnostics
+- Run built-in diagnostics
+- Command: test interface ethernet 1/1/1 comprehensive
+- Check for hardware alarms
+- Command: show system alarms active
+
+4.2 Microwave Link Degradation Investigation
+
+4.2.1 Signal Quality Assessment
+Step 1: Check RSL and fade margin
+- Access equipment via console
+- Command: show radio status detailed
+- Verify current RSL vs. calculated link budget
+
+Step 2: Analyze error statistics
+- Command: show performance-monitoring current
+- Check for:
+  * Errored Seconds (ES)
+  * Severely Errored Seconds (SES)
+  * Background Block Errors (BBE)
+
+Step 3: Environmental factor analysis
+- Check weather conditions at both sites
+- Review atmospheric ducting predictions
+- Verify antenna alignment (if recent maintenance)
+
+5. DECISION TREES
+
+5.1 Capacity Upgrade Decision Tree
+
+Circuit Utilization > 70%?
+├─ YES: Continue to growth analysis
+└─ NO: Continue monitoring, no action required
+
+Growth Rate > 5% per week?
+├─ YES: Continue to timeline analysis
+└─ NO: Schedule monthly review
+
+Time to 85% threshold < 90 days?
+├─ YES: Initiate capacity upgrade process
+└─ NO: Schedule quarterly review
+
+Upgrade Options Available?
+├─ YES: Proceed with technical assessment
+└─ NO: Escalate to capacity planning team
+
+5.2 Error Investigation Decision Tree
+
+CRC Errors Detected?
+├─ YES: Check error rate calculation
+└─ NO: Continue normal monitoring
+
+Error Rate > 1 per 10^12 bits?
+├─ YES: Check optical power levels
+└─ NO: Document and continue monitoring
+
+Optical Power Within Spec?
+├─ YES: Check equipment diagnostics
+└─ NO: Schedule fiber plant testing
+
+Equipment Diagnostics Pass?
+├─ YES: Escalate to vendor support
+└─ NO: Schedule equipment replacement
+
+6. ESCALATION CRITERIA AND CONTACTS
+
+6.1 Escalation Thresholds
+
+Level 1 - NOC Technician Response:
+- Circuit utilization 70-84%
+- CRC error rate 1-10 per 10^12 bits
+- Microwave RSL -60 to -65 dBm
+- Link availability 99.9-99.95%
+
+Level 2 - Senior Engineer Response:
+- Circuit utilization 85-94%
+- CRC error rate >10 per 10^12 bits
+- Microwave RSL <-65 dBm
+- Link availability 99.5-99.9%
+
+Level 3 - Emergency Response:
+- Circuit utilization >95%
+- Complete circuit failure
+- Link availability <99.5%
+
+6.2 Contact Information
+
+NOC Level 1: +1-555-NOC-L001 (noc-l1@telecom.com)
+NOC Level 2: +1-555-NOC-L002 (noc-l2@telecom.com)
+Capacity Planning: +1-555-CAP-PLAN (capacity@telecom.com)
+Field Operations: +1-555-FIELD-OPS (fieldops@telecom.com)
+Vendor Support Cisco: +1-800-553-2447 (TAC Case Portal)
+Vendor Support Nokia: +1-888-665-4228 (Customer Care)
+
+7. CAPACITY UPGRADE PROCEDURES
+
+7.1 Upgrade Trigger Criteria
+
+Immediate Upgrade Required:
+- Current utilization >85%
+- Projected 95% utilization within 30 days
+- Recurring performance degradation due to capacity
+
+Planned Upgrade Required:
+- Current utilization >70%
+- Projected 85% utilization within 90 days
+- Business growth projections indicate need
+
+7.2 Upgrade Process Initiation
+
+Step 1: Document current state
+- Capture current utilization statistics
+- Document growth trends and projections
+- Identify affected services and customers
+
+Step 2: Technical assessment
+- Evaluate upgrade options (rate increase vs. additional circuits)
+- Assess equipment compatibility requirements
+- Calculate implementation timeline
+
+Step 3: Business case development
+- Estimate upgrade costs (equipment, installation, testing)

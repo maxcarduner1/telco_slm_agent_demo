@@ -1,0 +1,212 @@
+ROOT CAUSE ANALYSIS REPORT
+
+RCA: Pacific Northwest Region Latency Spike - June 2026
+
+INCIDENT IDENTIFICATION
+Incident ID: INC-2026-0615-001
+Severity Level: S2 - High
+Duration: 36 hours (June 15, 2026 14:30 PDT - June 17, 2026 02:30 PDT)
+Affected Region: Pacific Northwest
+Report Date: June 24, 2026
+Prepared By: Network Operations Engineering Team
+Reviewed By: Regional Network Director
+
+EXECUTIVE SUMMARY
+
+On June 15, 2026, at 14:30 PDT, the Pacific Northwest region experienced a significant latency degradation event affecting 12 LTE sites across Washington and Oregon. The incident resulted in average latency increases of 340% above baseline, impacting approximately 47,000 subscribers and causing service quality degradation for data and voice services.
+
+The root cause was identified as S1-U interface congestion caused by misconfigured Quality of Service (QoS) bearer mapping following a planned Evolved Packet Core (EPC) software upgrade completed on June 14, 2026. The configuration error resulted in improper QoS Class Identifier (QCI) mapping, causing all traffic to be processed through a single bearer class instead of the intended differentiated service levels.
+
+Resolution was achieved through rollback of QCI mapping tables to pre-upgrade configuration and implementation of emergency traffic management policies. Total customer impact included 2.3 million dropped sessions and estimated revenue impact of $1.2 million.
+
+TIMELINE OF EVENTS
+
+June 14, 2026
+22:00 PDT - Planned EPC software upgrade initiated (Version 18.4.2 to 18.5.1)
+23:45 PDT - Software upgrade completed successfully
+00:15 PDT - Post-upgrade validation tests completed with passing results
+
+June 15, 2026
+14:30 PDT - Network Operations Center (NOC) receives first latency alarms from Seattle Metro sites
+14:35 PDT - Automated monitoring systems trigger S2 severity incident
+14:40 PDT - On-call engineer begins initial investigation
+15:15 PDT - Incident escalated to Network Engineering team
+15:30 PDT - Customer complaints begin increasing through care channels
+16:00 PDT - Regional impact confirmed across 12 sites
+16:45 PDT - Emergency response team assembled
+17:30 PDT - S1-U interface congestion identified as primary symptom
+18:15 PDT - QoS bearer mapping investigation initiated
+19:00 PDT - Correlation established between upgrade and latency issues
+
+June 16, 2026
+08:00 PDT - Detailed QCI mapping analysis begins
+10:30 PDT - Misconfigured bearer mapping confirmed as root cause
+12:00 PDT - Rollback plan developed and approved
+14:00 PDT - QCI mapping table rollback initiated
+15:30 PDT - Traffic load balancing policies implemented
+18:00 PDT - Latency metrics show 60% improvement
+22:00 PDT - Additional optimization parameters applied
+
+June 17, 2026
+02:30 PDT - All KPIs restored to baseline levels
+03:00 PDT - Incident declared resolved
+08:00 PDT - Post-incident monitoring period initiated
+
+IMPACT ASSESSMENT
+
+Key Performance Indicators Affected:
+- Average Latency: Increased from 45ms baseline to 198ms peak (340% increase)
+- Packet Loss Rate: Increased from 0.02% to 1.8%
+- Session Setup Success Rate: Decreased from 99.2% to 94.7%
+- Throughput: Reduced by average 35% across affected sites
+- Call Drop Rate: Increased from 0.8% to 3.2%
+
+Customer Impact:
+- Total Affected Subscribers: 47,000
+- Dropped Data Sessions: 2,300,000
+- Failed Voice Calls: 15,600
+- Customer Complaints: 1,247
+- Service Credits Issued: $89,000
+
+Business Impact:
+- Estimated Revenue Loss: $1,200,000
+- Regulatory Reporting Required: Yes (FCC notification filed)
+- SLA Violations: 12 enterprise customers
+- Brand Impact: Moderate (contained through proactive communications)
+
+Geographic Coverage:
+Affected Sites:
+- Seattle Metro: 5 sites
+- Portland Metro: 4 sites
+- Spokane: 2 sites
+- Eugene: 1 site
+
+ROOT CAUSE ANALYSIS
+
+Primary Analysis Method: 5-Whys Methodology
+
+Why 1: Why did customers experience high latency?
+Answer: S1-U interface became congested, creating bottlenecks in data transmission between eNodeB and Serving Gateway.
+
+Why 2: Why did the S1-U interface become congested?
+Answer: All traffic was being processed through a single QoS bearer class instead of being distributed across multiple differentiated service levels.
+
+Why 3: Why was all traffic using a single bearer class?
+Answer: QoS Class Identifier (QCI) mapping tables were incorrectly configured, mapping all QCI values (1-9) to QCI-9 (best effort) instead of maintaining proper differentiation.
+
+Why 4: Why were the QCI mapping tables incorrectly configured?
+Answer: The EPC software upgrade included new default QCI mapping parameters that overwrote existing custom configurations without proper validation.
+
+Why 5: Why were the custom configurations overwritten without validation?
+Answer: The pre-change validation checklist did not include verification of QoS bearer mapping configurations, and the upgrade procedure lacked safeguards for preserving critical QoS parameters.
+
+Contributing Factors:
+- Insufficient pre-upgrade configuration backup verification
+- Lack of automated QoS configuration validation tools
+- Limited post-upgrade testing scope (focused on basic connectivity only)
+- Delayed correlation between upgrade timing and symptom onset
+- Inadequate monitoring thresholds for S1-U interface utilization
+
+CORRECTIVE ACTIONS TAKEN
+
+Immediate Actions (During Incident):
+1. Implemented emergency traffic throttling policies to reduce S1-U load
+2. Rolled back QCI mapping tables to pre-upgrade configuration
+3. Applied temporary load balancing across available bearer classes
+4. Activated additional S1-U interface capacity where available
+5. Coordinated customer communications through care channels
+
+Short-term Actions (Within 72 hours):
+1. Conducted comprehensive audit of all QoS configurations across region
+2. Implemented enhanced monitoring for S1-U interface utilization
+3. Updated incident response procedures for QoS-related issues
+4. Performed detailed impact analysis and customer remediation
+5. Filed required regulatory notifications
+
+Medium-term Actions (Within 30 days):
+1. Developed automated QoS configuration validation scripts
+2. Enhanced pre-upgrade testing procedures to include QoS verification
+3. Implemented configuration change control improvements
+4. Updated network monitoring thresholds and alerting rules
+5. Conducted team training on QoS troubleshooting procedures
+
+PREVENTIVE MEASURES AND RECOMMENDATIONS
+
+Process Improvements:
+1. Mandatory QoS Configuration Validation
+   - Implement automated pre and post-upgrade QoS validation
+   - Require sign-off from QoS engineering team for all EPC upgrades
+   - Establish configuration drift detection and alerting
+
+2. Enhanced Change Management
+   - Update change control procedures to include QoS impact assessment
+   - Implement mandatory configuration backup verification
+   - Require detailed rollback procedures for all software upgrades
+
+3. Monitoring and Alerting Enhancements
+   - Deploy real-time S1-U interface utilization monitoring
+   - Implement QCI distribution monitoring and alerting
+   - Establish latency threshold alerting at 20% above baseline
+
+Technical Recommendations:
+1. Infrastructure Improvements
+   - Deploy additional S1-U interface capacity in high-traffic areas
+   - Implement automated QoS policy enforcement mechanisms
+   - Establish redundant bearer class configurations
+
+2. Tool Development
+   - Create automated QoS configuration validation suite
+   - Develop real-time QCI mapping verification tools
+   - Implement predictive analytics for S1-U congestion detection
+
+3. Documentation Updates
+   - Revise EPC upgrade procedures to include QoS validation steps
+   - Update troubleshooting guides with S1-U congestion scenarios
+   - Create QoS configuration management best practices document
+
+LESSONS LEARNED
+
+Key Takeaways:
+1. QoS configurations are critical infrastructure components that require the same level of protection and validation as core network elements
+2. Software upgrades can introduce subtle configuration changes that may not be immediately apparent through standard testing procedures
+3. The correlation between upgrade activities and performance degradation may not be immediately obvious, requiring systematic investigation approaches
+4. Customer impact from QoS misconfigurations can be severe even when basic connectivity remains functional
+5. Proactive monitoring of interface utilization and traffic distribution is essential for early problem detection
+
+Process Lessons:
+1. Pre-change validation must include comprehensive QoS parameter verification
+2. Post-upgrade testing should extend beyond basic functionality to include performance validation
+3. Configuration management procedures must account for software upgrade impacts on custom settings
+4. Incident response procedures should include systematic correlation analysis between recent changes and observed symptoms
+5. Cross-functional collaboration between software engineering and QoS teams is critical for upgrade success
+
+Technical Lessons:
+1. Default software configurations may not align with operational requirements
+2. QCI mapping changes can have cascading effects on network performance
+3. S1-U interface monitoring is essential for LTE network health
+4. Automated validation tools are necessary for complex QoS configurations
+5. Rollback procedures must be tested and readily available for critical configuration changes
+
+APPROVAL AND DISTRIBUTION
+
+Report Prepared By:
+John Martinez, Senior Network Engineer
+Date: June 24, 2026
+
+Technical Review:
+Sarah Chen, Principal QoS Engineer
+Date: June 25, 2026
+
+Management Approval:
+Michael Thompson, Regional Network Director
+Date: June 26, 2026
+
+Distribution List:
+- Network Operations Center
+- Regional Engineering Teams
+- Quality Assurance Department
+- Change Management Office
+- Executive Leadership Team
+- Regulatory Affairs Department
+
+This report will be retained for regulatory compliance and incorporated into the corporate knowledge management system for future reference and training purposes.

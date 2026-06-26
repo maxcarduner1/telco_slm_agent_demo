@@ -1,0 +1,183 @@
+ROOT CAUSE ANALYSIS REPORT
+
+RCA: Southeast VoLTE Quality Degradation - April 2026
+
+INCIDENT IDENTIFICATION
+Incident ID: INC-2026-04-0847
+Severity Level: 2 - High
+Date/Time Opened: April 15, 2026 14:32 EDT
+Date/Time Closed: April 17, 2026 16:45 EDT
+Total Duration: 50 hours 13 minutes
+Report Prepared By: Network Engineering Team
+Report Date: April 24, 2026
+
+EXECUTIVE SUMMARY
+
+On April 15, 2026, the Southeast region experienced significant VoLTE voice quality degradation affecting approximately 2.3 million subscribers across Georgia, Florida, South Carolina, and North Carolina. The incident was triggered by an intermittent failure in AMR-WB (Adaptive Multi-Rate Wideband) codec negotiation within the IMS (IP Multimedia Subsystem) core network infrastructure.
+
+Mean Opinion Score (MOS) ratings for affected VoLTE calls dropped from the baseline 4.2 to 3.1, representing a 26% degradation in voice quality. The root cause was identified as a software defect in IMS core version 8.4.2 that caused codec negotiation failures during peak traffic periods. Resolution was achieved through emergency vendor patch deployment within 48 hours of initial detection.
+
+TIMELINE OF EVENTS
+
+April 15, 2026
+14:32 - Network Operations Center (NOC) receives first automated alert for elevated VoLTE quality metrics in Atlanta market
+14:45 - Additional quality degradation alerts triggered across Southeast region
+15:15 - Level 2 escalation initiated; Regional Network Engineering team engaged
+15:30 - Customer complaints begin increasing through call centers
+16:00 - Incident declared as Severity 2; Incident Commander assigned
+16:30 - Initial investigation reveals MOS score degradation across multiple markets
+17:45 - IMS core logs analysis initiated
+19:20 - AMR-WB codec negotiation failures identified in call detail records
+21:00 - Vendor (Ericsson) technical support engaged
+
+April 16, 2026
+08:00 - Joint troubleshooting session with vendor engineers
+10:30 - Software defect confirmed in IMS core version 8.4.2
+12:15 - Emergency patch development initiated by vendor
+14:00 - Patch testing begins in lab environment
+18:30 - Patch validation completed; deployment planning initiated
+22:00 - Change Advisory Board emergency approval obtained
+
+April 17, 2026
+02:00 - Patch deployment begins on primary IMS core nodes
+06:30 - Patch deployment completed on all affected nodes
+08:15 - System monitoring confirms codec negotiation restoration
+12:00 - MOS scores return to baseline levels (4.2)
+16:45 - Incident officially closed after 4-hour monitoring period
+
+IMPACT ASSESSMENT
+
+Network Performance Impact:
+- VoLTE MOS scores decreased from 4.2 to 3.1 (26% degradation)
+- Call Setup Success Rate dropped from 99.2% to 97.8%
+- AMR-WB codec utilization fell from 85% to 23%
+- Fallback to AMR-NB codec increased by 340%
+- Average call establishment time increased from 2.1s to 3.7s
+
+Geographic Coverage:
+- Total affected area: 4 states (GA, FL, SC, NC)
+- Impacted cell sites: 8,247 sites
+- Population coverage affected: approximately 12.8 million
+
+Customer Impact:
+- Affected subscribers: 2.3 million active VoLTE users
+- Total degraded calls: 4.7 million voice calls
+- Customer complaints received: 18,432 cases
+- Estimated revenue impact: $340,000 (credits and adjustments)
+- Customer satisfaction score impact: 0.3 point decrease
+
+Business Impact:
+- Regulatory reporting required to FCC within 30 days
+- Media coverage in 3 major markets
+- Competitive disadvantage during promotional period
+- Network quality ranking impact with third-party testing firms
+
+ROOT CAUSE ANALYSIS
+
+Primary Root Cause:
+Software defect in IMS core platform version 8.4.2 causing intermittent AMR-WB codec negotiation failures during high traffic periods.
+
+Five Whys Analysis:
+
+1. Why did VoLTE call quality degrade?
+   AMR-WB codec negotiation was failing, forcing calls to use lower quality AMR-NB codec.
+
+2. Why was AMR-WB codec negotiation failing?
+   IMS core software was not properly handling codec capability exchange during Session Description Protocol (SDP) negotiation.
+
+3. Why was the IMS core software not handling SDP negotiation properly?
+   A race condition existed in the software when processing multiple simultaneous codec negotiation requests.
+
+4. Why did this race condition exist?
+   Inadequate thread synchronization in the codec selection algorithm introduced in version 8.4.2.
+
+5. Why was this defect not caught before deployment?
+   Load testing scenarios did not adequately simulate real-world concurrent codec negotiation patterns.
+
+Contributing Factors:
+- Insufficient regression testing for codec negotiation under high load
+- Delayed vendor notification process for critical software issues
+- Limited real-time monitoring of codec-specific quality metrics
+- Inadequate escalation procedures for voice quality degradation
+
+CORRECTIVE ACTIONS TAKEN
+
+Immediate Actions (Completed):
+1. Applied vendor emergency patch IMS-8.4.2-PATCH-001 to all Southeast IMS core nodes
+2. Implemented enhanced monitoring for AMR-WB codec negotiation success rates
+3. Activated backup codec negotiation parameters as temporary safeguard
+4. Increased NOC monitoring frequency for VoLTE quality metrics
+5. Established direct communication channel with vendor Level 3 support
+
+Short-term Actions (In Progress):
+1. Comprehensive testing of patch stability across all traffic scenarios
+2. Development of automated codec negotiation failure detection algorithms
+3. Enhancement of customer notification procedures for voice quality issues
+4. Review and update of vendor escalation procedures
+5. Implementation of proactive quality monitoring dashboards
+
+PREVENTIVE MEASURES AND RECOMMENDATIONS
+
+Technical Recommendations:
+1. Implement comprehensive codec negotiation load testing in all future IMS software releases
+2. Deploy real-time codec performance monitoring across all markets
+3. Establish automated failover mechanisms for codec negotiation failures
+4. Enhance SDP negotiation logging and analysis capabilities
+5. Implement predictive analytics for voice quality trend analysis
+
+Process Improvements:
+1. Mandate vendor participation in high-load testing scenarios
+2. Establish dedicated voice quality monitoring team within NOC
+3. Implement automated customer notification system for quality degradation
+4. Create escalation matrix specifically for voice quality incidents
+5. Develop vendor accountability framework for software defect resolution
+
+Infrastructure Enhancements:
+1. Deploy redundant IMS core processing capacity for peak traffic periods
+2. Implement geographic load balancing for codec negotiation processing
+3. Establish dedicated test environment mirroring production codec scenarios
+4. Deploy advanced analytics platform for voice quality correlation analysis
+5. Implement automated rollback procedures for IMS software deployments
+
+LESSONS LEARNED
+
+Technical Lessons:
+- Codec negotiation testing must include realistic concurrent user scenarios
+- Real-time monitoring of codec-specific metrics is critical for early detection
+- Software race conditions can manifest only under specific load patterns
+- Vendor patch deployment procedures require pre-established emergency protocols
+
+Operational Lessons:
+- Voice quality degradation requires immediate escalation regardless of other metrics
+- Customer impact assessment must include qualitative experience factors
+- Vendor engagement should occur within first hour of complex technical issues
+- Cross-functional communication is essential during voice quality incidents
+
+Process Lessons:
+- Load testing scenarios must reflect actual network usage patterns
+- Monitoring systems require codec-level granularity for VoLTE networks
+- Emergency change procedures need streamlined approval processes
+- Post-incident customer communication significantly impacts satisfaction recovery
+
+Strategic Lessons:
+- Voice quality directly correlates with customer retention and satisfaction
+- Proactive monitoring investment prevents reactive incident costs
+- Vendor partnership agreements must include specific quality commitments
+- Network resilience requires redundancy at the application layer, not just infrastructure
+
+APPROVAL AND DISTRIBUTION
+
+Report Prepared By: Sarah Chen, Senior Network Engineer
+Technical Review: Michael Rodriguez, Principal Systems Architect  
+Management Review: Jennifer Park, Director of Network Operations
+Final Approval: David Thompson, VP of Network Engineering
+
+Distribution List:
+- Executive Leadership Team
+- Network Operations Management
+- Regional Engineering Teams
+- Vendor Management Office
+- Quality Assurance Team
+- Customer Experience Team
+
+This report contains confidential and proprietary information. Distribution is restricted to authorized personnel only.

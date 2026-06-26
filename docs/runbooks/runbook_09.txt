@@ -1,0 +1,297 @@
+NETWORK OPERATIONS RUNBOOK
+
+Document ID: NOC-5G-RB-001
+Title: 5G NR NSA/SA Interworking Issues
+Version: 2.1
+Effective Date: January 15, 2024
+Next Review Date: July 15, 2024
+
+REVISION HISTORY
+================
+Version | Date       | Author          | Description
+--------|------------|-----------------|----------------------------------
+1.0     | 06/01/2023 | J. Martinez     | Initial document creation
+1.1     | 09/15/2023 | S. Chen         | Added SA interworking procedures
+2.0     | 11/30/2023 | R. Thompson     | Enhanced troubleshooting steps
+2.1     | 01/15/2024 | M. Rodriguez    | Updated CLI commands and thresholds
+
+DOCUMENT APPROVAL
+=================
+Prepared by: Network Engineering Team
+Reviewed by: Senior Network Architect - David Kim
+Approved by: Network Operations Manager - Sarah Johnson
+
+PURPOSE AND SCOPE
+=================
+
+This runbook provides detailed procedures for diagnosing and resolving 5G New Radio (NR) Non-Standalone (NSA) and Standalone (SA) interworking issues. The document covers EN-DC (E-UTRA-NR Dual Connectivity) setup failures, Secondary gNodeB (SgNB) addition failures, split bearer configuration problems, and measurement gap optimization procedures.
+
+The scope includes:
+- LTE-NR interworking troubleshooting in NSA mode
+- SA mode deployment issues
+- Dual connectivity establishment and maintenance
+- Bearer configuration and optimization
+- Performance monitoring and KPI analysis
+
+PREREQUISITES AND TOOLS NEEDED
+===============================
+
+Personnel Requirements:
+- Level 2 or higher NOC engineer certification
+- 5G NR technology training completion
+- Access to network management systems
+
+Required Tools and Access:
+- Network Management System (NMS) access credentials
+- Element Management System (EMS) login
+- CLI access to eNodeB and gNodeB
+- Performance monitoring tools (Actix Analyzer, TEMS Investigation)
+- Spectrum analyzer (when available)
+- Drive test equipment for field verification
+
+Required Software Versions:
+- eNodeB software: Release 20.2 or higher
+- gNodeB software: Release 21.1 or higher
+- Core network: 5GC Release 16 compliant
+
+Network Information Required:
+- Cell ID and sector information
+- Frequency band configurations
+- Neighbor cell relationships
+- X2/Xn interface status
+- Core network element addresses
+
+DETAILED PROCEDURES
+===================
+
+SECTION 1: EN-DC SETUP FAILURE DIAGNOSIS
+=========================================
+
+1.1 Initial Assessment and Data Collection
+
+Step 1: Verify alarm status and collect initial data
+- Access NMS and check for active alarms related to target cell
+- Document the following information:
+  * Cell ID: ___________
+  * eNodeB ID: ___________
+  * gNodeB ID: ___________
+  * Time of issue onset: ___________
+  * Affected frequency bands: ___________
+
+Step 2: Check EN-DC capability configuration
+Execute the following CLI commands on the eNodeB:
+
+show endc-capability status
+show nr-neighbor-cell-list
+show x2-interface status
+
+Expected output should show:
+- EN-DC capability: ENABLED
+- NR neighbor cells: CONFIGURED
+- X2 interface state: ESTABLISHED
+
+Step 3: Verify UE capability and measurements
+Check UE measurement reports:
+
+show ue-measurement-report cell-id [CELL_ID]
+show endc-setup-attempts last-hour
+
+Look for the following parameters:
+- NR measurement events: A3, A5
+- RSRP threshold compliance: > -110 dBm
+- RSRQ threshold compliance: > -15 dB
+
+1.2 EN-DC Setup Failure Analysis
+
+Step 4: Analyze SgNB Addition Request failures
+Execute on Master eNodeB:
+
+show sgnb-addition-request-stats
+show sgnb-addition-failure-cause
+
+Common failure causes and actions:
+- Cause: "Unknown NR Cell ID"
+  Action: Verify NR neighbor cell configuration
+  Command: configure nr-neighbor-cell add cell-id [NR_CELL_ID] pci [PCI] freq [FREQUENCY]
+
+- Cause: "SgNB Resource Unavailable"
+  Action: Check gNodeB resource utilization
+  Command: show resource-utilization prb-usage
+
+- Cause: "X2 Interface Failure"
+  Action: Restart X2 interface
+  Command: restart x2-interface peer-enb-id [PEER_ID]
+
+Step 5: Verify measurement gap configuration
+Check measurement gap settings:
+
+show measurement-gap-config
+show measurement-pattern-config
+
+Optimal settings:
+- Gap pattern: GP0 (6ms gap every 40ms)
+- Measurement duration: 6ms
+- Gap offset: 0-39 (optimized per cell load)
+
+1.3 SgNB Configuration Verification
+
+Step 6: Validate SgNB parameters on gNodeB
+Execute on target gNodeB:
+
+show cell-config cell-id [NR_CELL_ID]
+show endc-config
+show x2-interface peer-list
+
+Verify the following parameters:
+- NR-ARFCN: Matches planning data
+- SSB configuration: Correct periodicity (20ms recommended)
+- SCS (Subcarrier Spacing): 30 kHz for FR1
+- Bandwidth: Matches license allocation
+
+Step 7: Check bearer configuration
+Verify split bearer and SCG bearer settings:
+
+show bearer-config endc
+show qos-flow-mapping
+
+Required configurations:
+- Default bearer: Split bearer for best effort traffic
+- Dedicated bearers: SCG bearer for low latency services
+- QCI mapping: QCI 1-4 to SCG, QCI 5-9 to split bearer
+
+SECTION 2: SgNB ADDITION FAILURE TROUBLESHOOTING
+=================================================
+
+2.1 Failure Classification and Initial Response
+
+Step 8: Classify SgNB addition failure type
+Access failure statistics:
+
+show sgnb-addition-failure-stats detailed
+show kpi endc-setup-success-rate last-24h
+
+Failure categories:
+- Type A: UE capability issues (>30% of failures)
+- Type B: Network configuration problems (>25% of failures)
+- Type C: Resource availability issues (>20% of failures)
+- Type D: Interface problems (>15% of failures)
+- Type E: Other causes (<10% of failures)
+
+Step 9: Execute immediate recovery actions based on failure type
+
+For Type A failures (UE capability):
+show ue-capability-info imsi [IMSI]
+configure endc-admission-control ue-capability-check strict
+
+For Type B failures (Configuration):
+validate-config endc-parameters
+show config-mismatch x2-interface
+
+For Type C failures (Resources):
+show resource-allocation prb cell-id [CELL_ID]
+configure load-balancing endc-threshold adjust -10
+
+2.2 Detailed Troubleshooting Procedures
+
+Step 10: Analyze X2/Xn interface health
+Execute comprehensive interface check:
+
+show x2-interface detailed peer-id [PEER_ID]
+show x2-message-statistics
+ping x2-interface peer-ip [PEER_IP_ADDRESS]
+traceroute x2-interface peer-ip [PEER_IP_ADDRESS]
+
+Expected results:
+- Interface state: ESTABLISHED
+- Message success rate: >99%
+- RTT: <10ms
+- Packet loss: <0.1%
+
+Step 11: Verify timing and synchronization
+Check synchronization status:
+
+show ptp-sync-status
+show gps-sync-status
+show timing-advance-statistics
+
+Required parameters:
+- PTP sync accuracy: <1.5 microseconds
+- GPS lock status: LOCKED
+- Timing advance spread: <2 microseconds
+
+Step 12: Analyze measurement event configuration
+Review measurement event settings:
+
+show measurement-event-config a3-nr
+show measurement-event-config a5-nr
+
+Optimal A3 event configuration:
+- Threshold: -110 dBm (RSRP)
+- Hysteresis: 2 dB
+- Time to trigger: 160ms
+- Report interval: 240ms
+
+Optimal A5 event configuration:
+- Threshold 1 (serving): -108 dBm
+- Threshold 2 (neighbor): -110 dBm
+- Hysteresis: 2 dB
+- Time to trigger: 160ms
+
+2.3 Advanced Diagnostics
+
+Step 13: Perform UE trace analysis
+Enable UE tracing for detailed analysis:
+
+enable ue-trace imsi [IMSI] duration 300
+show ue-trace-results imsi [IMSI] event sgnb-addition
+
+Analyze trace for:
+- RRC measurement reports
+- SgNB addition request/response messages
+- Bearer establishment procedures
+- Failure points in call flow
+
+Step 14: Check interference and RF conditions
+Analyze RF environment:
+
+show interference-analysis cell-id [CELL_ID]
+show rssi-statistics hourly
+show pci-conflict-detection
+
+Acceptable thresholds:
+- RSSI: <-85 dBm
+- PCI conflicts: 0
+- Interference ratio: <-6 dB
+
+SECTION 3: SPLIT BEARER CONFIGURATION
+======================================
+
+3.1 Bearer Type Selection and Configuration
+
+Step 15: Analyze traffic characteristics for bearer selection
+Review traffic patterns:
+
+show traffic-analysis qci-distribution
+show application-usage-statistics
+show latency-requirements per-qci
+
+Bearer selection criteria:
+- QCI 1 (Conversational Voice): SCG bearer
+- QCI 2 (Conversational Video): SCG bearer  
+- QCI 3 (Real-time Gaming): SCG bearer
+- QCI 4 (Non-conversational Video): Split bearer
+- QCI 5-9 (IMS/Web/Email): Split bearer
+
+Step 16: Configure split bearer parameters
+Set up split bearer configuration:
+
+configure split-bearer qci [QCI] enable
+configure split-bearer threshold ul-split 50 dl-split 30
+configure split-bearer load-balancing enable
+
+Parameters explanation:
+- ul-split 50: 50% uplink traffic to NR
+- dl-split 30: 30% downlink traffic to NR
+- load-balancing: Dynamic adjustment based on conditions
+
+Step 17: Configure PD
