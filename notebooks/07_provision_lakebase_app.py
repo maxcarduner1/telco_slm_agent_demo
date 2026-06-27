@@ -15,7 +15,8 @@
 # COMMAND ----------
 
 dbutils.widgets.text("project_id", "telco-slm-agent-memory", "Lakebase Project ID")
-dbutils.widgets.text("app_name", "otel-telco-agent", "App Name")
+dbutils.widgets.text("app_name",   "otel-telco-agent",       "App Name")
+dbutils.widgets.text("catalog",    "",                        "UC Catalog (for SP USE CATALOG grant)")
 
 # COMMAND ----------
 

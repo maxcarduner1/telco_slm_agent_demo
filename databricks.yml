@@ -8,6 +8,9 @@ variables:
   schema:
     default: otel_rag_agent_demo # Schema will be created by 00_setup_catalog_schema if missing
     description: Unity Catalog schema name
+  warehouse_id:
+    default: ""                  # REQUIRED: set to your SQL Warehouse ID
+    description: SQL Warehouse ID for UC function execution
 
 workspace:
   profile: DEFAULT               # Set to your Databricks CLI profile name
@@ -158,7 +161,7 @@ resources:
           - name: UC_SCHEMA
             value: "${var.schema}"
           - name: DATABRICKS_WAREHOUSE_ID
-            value: "7b65956f30d66feb"
+            value: "${var.warehouse_id}"
       permissions:
         - user_name: "max.carduner@databricks.com"
           level: "CAN_MANAGE"

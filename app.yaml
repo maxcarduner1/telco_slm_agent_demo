@@ -31,8 +31,8 @@ env:
     value: "otel-embedding2-300m"
   - name: VS_ENDPOINT
     value: "demo_telco_vs_endpoint"
-  # UC_CATALOG, UC_SCHEMA, and DATABRICKS_WAREHOUSE_ID are workspace-specific.
-  # Set them in databricks.yml (apps.telco_agent.config.env) where they can be
-  # parameterized per workspace via ${var.catalog} / ${var.schema}.
+  # UC_CATALOG, UC_SCHEMA, DATABRICKS_WAREHOUSE_ID are NOT set here.
+  # They are injected by databricks bundle deploy via apps.telco_agent.config.env
+  # using ${var.catalog} / ${var.schema} so they stay workspace-agnostic.
   - name: TASK_TIMEOUT_SECONDS
     value: "300"
