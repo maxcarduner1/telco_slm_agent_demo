@@ -144,11 +144,13 @@ Claude only sees distilled, pre-retrieved context — its token consumption is b
 | Component | Pricing Type | Estimated Cost | Notes |
 |-----------|-------------|---------------|-------|
 | **OTel SLM endpoint** (`GPU_SMALL`) | Fixed | ~$301/month | All 3 models; 24/7 serving |
-| **Databricks Apps compute** | Serverless | ~$0 idle | Pay only during active requests |
+| **Databricks Apps compute** | Serverless DBU | ~$15/month | 8 hrs/day × 22 working days = 176 active hrs; ~0.5 DBU/hr at ~$0.07/DBU + standby |
 | **Vector Search endpoint** | Shared/workspace | Minimal incremental | Assumes shared endpoint |
 | **Serverless job compute** | Per-run | ~$5–10 one-time | Data setup job (~45 min) |
 | **Lakebase (agent memory)** | Variable (autoscale) | $0–$504/month | See note below |
 | **Claude Sonnet 4 (supervisor)** | Pay-per-token | Variable | See note below |
+
+**Databricks Apps compute:** The FastAPI/uvicorn agent server runs as a Databricks App on serverless compute. Assuming **8 active hours/day across 22 working days (176 hours/month)**, a small app consuming ~0.5 DBU/hr at the standard serverless rate (~$0.07/DBU) gives ~$6 in pure compute, plus a small standby/idle charge, totalling approximately **$15/month**. Outside business hours the app scales to near-zero. Continuous 24/7 deployment would cost ~$45/month.
 
 **Lakebase:** Autoscales from minimum compute (~$0.07/hr at idle) to CU_1 ($0.70/hr) and above under load. For a demo scenario with light traffic, expect $20–100/month. Persistent chat history can be disabled entirely for ephemeral-mode operation at zero cost.
 
@@ -160,12 +162,15 @@ Claude only sees distilled, pre-retrieved context — its token consumption is b
 | 5,000 queries | ~$75 |
 | 10,000 queries | ~$150 |
 
-**Total estimated cost (moderate usage, 5K queries/month):**
+**Total estimated cost (moderate usage, 5K queries/month, 8 hrs/day active):**
 
-| Mode | Monthly Cost |
-|------|-------------|
-| Demo (ephemeral memory, no Lakebase) | ~$375 |
-| Production (Lakebase autoscale) | ~$420–$580 |
+| Component | Demo | Production |
+|-----------|------|-----------|
+| OTel SLM endpoint (GPU_SMALL, 24/7) | $301 | $301 |
+| Databricks Apps compute (8 hrs/day) | $15 | $15 |
+| Claude Sonnet 4 supervisor (5K queries) | $75 | $75 |
+| Lakebase memory | $0 (ephemeral) | $20–$100 |
+| **Total** | **~$390** | **~$410–$490** |
 
 ### Cost Comparison: OTel SLMs vs. All-Frontier RAG
 
@@ -173,10 +178,10 @@ If OTel-LLM-1.2B-IT were replaced with Claude Sonnet 4 for RAG generation, each 
 
 | Monthly Queries | OTel Architecture | All-Frontier RAG | Monthly Savings |
 |----------------|-------------------|-----------------|----------------|
-| 5,000 | ~$380 | ~$560 | ~$180 |
-| 10,000 | ~$450 | ~$820 | ~$370 |
-| 50,000 | ~$600 | ~$3,120 | ~$2,520 |
-| 100,000 | ~$750 | ~$6,090 | ~$5,340 |
+| 5,000 | ~$390 | ~$575 | ~$185 |
+| 10,000 | ~$465 | ~$835 | ~$370 |
+| 50,000 | ~$615 | ~$3,135 | ~$2,520 |
+| 100,000 | ~$765 | ~$6,105 | ~$5,340 |
 
 The OTel fixed cost makes the architecture strongly favorable at any sustained query volume above ~8K/month. Below that volume, cost difference is small but OTel still wins on latency and abstention quality.
 
