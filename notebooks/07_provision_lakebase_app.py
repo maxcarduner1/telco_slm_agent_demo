@@ -7,6 +7,10 @@
 # MAGIC 2. **Databricks App** — Apps compute to host the LangGraph agent
 # MAGIC
 # MAGIC Both are idempotent — if they already exist, this notebook is a no-op.
+# MAGIC
+# MAGIC **API note:** All Databricks REST calls go through `WorkspaceClient().api_client.do()`
+# MAGIC so that the SDK handles OAuth. The Lakebase `create_project` endpoint requires
+# MAGIC `project_id` as a *query parameter* (`?project_id=...`), not in the JSON body.
 
 # COMMAND ----------
 
@@ -15,26 +19,21 @@ dbutils.widgets.text("app_name", "otel-telco-agent", "App Name")
 
 # COMMAND ----------
 
-import requests
 import time
+from databricks.sdk import WorkspaceClient
 
-project_id = dbutils.widgets.get("project_id")
-app_name = dbutils.widgets.get("app_name")
+project_id = dbutils.widgets.get("project_id") or "telco-slm-agent-memory"
+app_name   = dbutils.widgets.get("app_name")   or "otel-telco-agent"
 
-ws_url = spark.conf.get("spark.databricks.workspaceUrl")
-token = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
+# SDK client with ambient notebook credentials
+w = WorkspaceClient()
 
-headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def api(method, path, body=None, query=None):
+    """Call Databricks REST API via SDK (handles OAuth for all endpoints)."""
+    return w.api_client.do(method, f"/{path}", body=body, query=query)
 
-def api(method, path, json_body=None):
-    """Call Databricks REST API."""
-    url = f"https://{ws_url}/{path}"
-    resp = requests.request(method, url, headers=headers, json=json_body, timeout=60)
-    return resp
-
-print(f"Workspace: {ws_url}")
-print(f"Lakebase project: {project_id}")
-print(f"App name: {app_name}")
+print(f"Project : {project_id}")
+print(f"App     : {app_name}")
 
 # COMMAND ----------
 
@@ -48,17 +47,19 @@ print(f"App name: {app_name}")
 
 # COMMAND ----------
 
-resp = api("GET", f"api/2.0/postgres/projects/{project_id}")
-if resp.status_code == 200:
-    project = resp.json()
+try:
+    project = api("GET", f"api/2.0/postgres/projects/{project_id}")
     print(f"Lakebase project '{project_id}' already exists.")
-    print(f"  Owner: {project.get('status', {}).get('owner', '')}")
-    print(f"  PG Version: {project.get('status', {}).get('pg_version', '')}")
-    print(f"  Created: {project.get('create_time', '')}")
+    status = project.get("status", {})
+    print(f"  Owner: {status.get('owner', '')}")
+    print(f"  PG Version: {status.get('pg_version', '')}")
     lakebase_exists = True
-else:
-    print(f"Project '{project_id}' not found. Will create.")
-    lakebase_exists = False
+except Exception as e:
+    if "NOT_FOUND" in str(e) or "not found" in str(e).lower():
+        print(f"Project '{project_id}' not found. Will create.")
+        lakebase_exists = False
+    else:
+        raise
 
 # COMMAND ----------
 
@@ -69,29 +70,27 @@ else:
 
 if not lakebase_exists:
     print(f"Creating Lakebase project: {project_id}")
-    create_resp = api("POST", "api/2.0/postgres/projects", {
-        "project_id": project_id,
-        "spec": {"display_name": project_id}
-    })
-    if create_resp.status_code in (200, 201):
-        print("  Project created. Waiting for endpoint to become ACTIVE...")
-    else:
-        raise RuntimeError(f"Failed to create project: {create_resp.status_code} {create_resp.text[:500]}")
+    # project_id is a query parameter; spec goes in the body
+    api("POST", "api/2.0/postgres/projects",
+        body={"spec": {"display_name": project_id}},
+        query={"project_id": project_id})
+    print("  Project creation started. Waiting for endpoint to become ACTIVE...")
 
-    # Wait for endpoint
     for i in range(30):
         time.sleep(10)
-        ep_resp = api("GET", f"api/2.0/postgres/projects/{project_id}/branches/production/endpoints")
-        if ep_resp.status_code == 200:
-            endpoints = ep_resp.json()
-            if isinstance(endpoints, list) and len(endpoints) > 0:
-                state = endpoints[0].get("status", {}).get("current_state", "")
+        try:
+            eps_resp = api("GET", f"api/2.0/postgres/projects/{project_id}/branches/production/endpoints")
+            eps = eps_resp if isinstance(eps_resp, list) else eps_resp.get("endpoints", [])
+            if eps:
+                state = eps[0].get("status", {}).get("current_state", "")
                 if state == "ACTIVE":
                     print(f"  Endpoint ACTIVE after {(i+1)*10}s")
                     break
                 print(f"  State: {state} (waiting...)")
+        except Exception:
+            pass
     else:
-        print("  WARNING: Endpoint not ACTIVE within 5 min. Check console.")
+        print("  WARNING: Endpoint not ACTIVE within 5 min.")
 else:
     print("Skipping Lakebase creation — already exists.")
 
@@ -102,19 +101,20 @@ else:
 
 # COMMAND ----------
 
-ep_resp = api("GET", f"api/2.0/postgres/projects/{project_id}/branches/production/endpoints")
-endpoints = ep_resp.json()
-if isinstance(endpoints, list) and len(endpoints) > 0:
-    ep = endpoints[0]
-    pg_host = ep.get("status", {}).get("hosts", {}).get("host", "")
-    ep_state = ep.get("status", {}).get("current_state", "")
-    min_cu = ep.get("status", {}).get("autoscaling_limit_min_cu", "")
-    max_cu = ep.get("status", {}).get("autoscaling_limit_max_cu", "")
-    print(f"Endpoint: {ep_state}")
-    print(f"  Host: {pg_host}")
-    print(f"  Scaling: {min_cu}–{max_cu} CU")
-else:
+eps_resp = api("GET", f"api/2.0/postgres/projects/{project_id}/branches/production/endpoints")
+eps = eps_resp if isinstance(eps_resp, list) else eps_resp.get("endpoints", [])
+
+if not eps:
     raise RuntimeError("No endpoints found for Lakebase project")
+
+ep      = eps[0]
+pg_host  = ep.get("status", {}).get("hosts", {}).get("host", "")
+ep_state = ep.get("status", {}).get("current_state", "")
+min_cu   = ep.get("status", {}).get("autoscaling_limit_min_cu", "")
+max_cu   = ep.get("status", {}).get("autoscaling_limit_max_cu", "")
+print(f"Endpoint : {ep_state}")
+print(f"  Host   : {pg_host}")
+print(f"  Scaling: {min_cu}–{max_cu} CU")
 
 # COMMAND ----------
 
@@ -125,12 +125,11 @@ else:
 
 import psycopg2
 
-# Generate OAuth credential
-cred_resp = api("POST", f"api/2.0/postgres/projects/{project_id}/branches/production/endpoints/primary:generateCredential", {})
-if cred_resp.status_code != 200:
-    raise RuntimeError(f"Failed to generate credential: {cred_resp.status_code} {cred_resp.text[:300]}")
-
-pg_token = cred_resp.json().get("token", "")
+# Generate OAuth credential via SDK native method (avoids action-path routing issues)
+cred = w.postgres.generate_database_credential(
+    endpoint=f"projects/{project_id}/branches/production/endpoints/primary"
+)
+pg_token = cred.token if hasattr(cred, "token") else cred.get("token", "")
 user_email = spark.sql("SELECT current_user()").collect()[0][0]
 
 print(f"Connecting to Lakebase as {user_email}...")
@@ -139,7 +138,6 @@ conn = psycopg2.connect(host=pg_host, port=5432, dbname="postgres",
 conn.autocommit = True
 cur = conn.cursor()
 
-# Create database if not exists
 cur.execute("SELECT 1 FROM pg_database WHERE datname = 'agent_memory'")
 if cur.fetchone() is None:
     cur.execute("CREATE DATABASE agent_memory")
@@ -151,7 +149,6 @@ conn.close()
 
 # COMMAND ----------
 
-# Connect to agent_memory and create schema
 conn = psycopg2.connect(host=pg_host, port=5432, dbname="agent_memory",
                         user=user_email, password=pg_token, sslmode="require")
 conn.autocommit = True
@@ -194,9 +191,9 @@ cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_i
 cur.execute("CREATE INDEX IF NOT EXISTS idx_ltm_user ON long_term_memory(user_id, category)")
 
 print("Memory tables ready:")
-print("  - conversations (thread metadata)")
-print("  - messages (chat history)")
-print("  - long_term_memory (persistent facts)")
+print("  - conversations")
+print("  - messages")
+print("  - long_term_memory")
 
 cur.close()
 conn.close()
@@ -208,44 +205,32 @@ conn.close()
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ### Check if app exists
-
-# COMMAND ----------
-
-app_resp = api("GET", f"api/2.0/apps/{app_name}")
-if app_resp.status_code == 200:
-    app_info = app_resp.json()
+try:
+    app_info  = api("GET", f"api/2.0/apps/{app_name}")
     app_state = app_info.get("app_status", {}).get("state", "")
-    app_url = app_info.get("url", "")
+    app_url   = app_info.get("url", "")
     print(f"App '{app_name}' already exists.")
-    print(f"  State: {app_state}")
-    print(f"  URL: {app_url}")
+    print(f"  State : {app_state}")
+    print(f"  URL   : {app_url}")
     app_exists = True
-else:
-    print(f"App '{app_name}' not found. Will create.")
-    app_exists = False
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Create app if needed
+except Exception as e:
+    if "NOT_FOUND" in str(e) or "not found" in str(e).lower():
+        print(f"App '{app_name}' not found. Will create.")
+        app_exists = False
+    else:
+        raise
 
 # COMMAND ----------
 
 if not app_exists:
     print(f"Creating Databricks App: {app_name}")
-    create_resp = api("POST", "api/2.0/apps", {
+    app_info = api("POST", "api/2.0/apps", body={
         "name": app_name,
         "description": "Telco Network Analytics Agent powered by OTel SLMs + LangGraph",
     })
-    if create_resp.status_code in (200, 201):
-        app_info = create_resp.json()
-        print(f"  App created: {app_info.get('name', '')}")
-        print(f"  URL: {app_info.get('url', '')}")
-        print(f"  Compute starting...")
-    else:
-        raise RuntimeError(f"Failed to create app: {create_resp.status_code} {create_resp.text[:500]}")
+    print(f"  App created: {app_info.get('name', '')}")
+    print(f"  URL: {app_info.get('url', '')}")
+    app_url = app_info.get("url", "")
 else:
     print("Skipping app creation — already exists.")
 
@@ -260,14 +245,9 @@ print("=" * 60)
 print("INFRASTRUCTURE PROVISIONING COMPLETE")
 print("=" * 60)
 print()
-print(f"Lakebase Project: {project_id}")
-print(f"  Host: {pg_host}")
-print(f"  Database: agent_memory")
+print(f"Lakebase Project : {project_id}")
+print(f"  Host           : {pg_host}")
+print(f"  Database       : agent_memory")
 print()
-print(f"Databricks App: {app_name}")
-if app_exists:
-    print(f"  URL: {app_url}")
-print()
-print("Next steps:")
-print("  1. Deploy agent code: databricks apps deploy otel-telco-agent --source-code-path ./")
-print("  2. Or via DAB: databricks bundle deploy")
+print(f"Databricks App   : {app_name}")
+print(f"  URL            : {app_url}")

@@ -86,14 +86,16 @@ All RAG operations use HuggingFace OTel models (Apache 2.0, trained on 326K+ tel
 ```
 Otel_SLM_Agent_Demo/
 ├── notebooks/                        # Data pipeline & infrastructure
-│   ├── 00_provision_endpoints.py     # Auto-provision VS + OTel endpoints (runs in parallel)
+│   ├── 00_setup_catalog_schema.py    # Create UC schema + telco_docs volume (runs first, all tasks depend on this)
+│   ├── 00_provision_endpoints.py     # Auto-provision VS + OTel endpoints
 │   ├── 01_generate_kpi_data.py       # Synthetic network KPI data (50 sites, 6 regions, 90 days)
 │   ├── 02_generate_documents.py      # Load telco docs from GitHub, fall back to Claude generation
 │   ├── 03_parse_documents.py         # Chunk documents for Vector Search
 │   ├── 04_create_vs_indexes.py       # Vector Search indexes with OTel-Embedding-335M
 │   ├── 05_create_uc_functions.py     # UC SQL functions as agent tools
 │   ├── 06_test_uc_functions.py       # Validate UC function outputs
-│   └── 07_provision_lakebase_app.py  # Lakebase memory setup
+│   ├── 07_provision_lakebase_app.py  # Lakebase memory + App compute provisioning
+│   └── 08_deploy_app.py              # Deploy agent code to the Databricks App
 ├── docs/                             # Pre-generated telco documents (committed to repo)
 │   ├── runbooks/                     # 10 operational runbooks
 │   ├── standards/                    # 5 standards summaries (3GPP, O-RAN)
@@ -143,52 +145,68 @@ All OTel model serving endpoints and the Vector Search endpoint are **automatica
 
 ## Deployment
 
-### 1. Configure environment variables
+### 1. Configure your catalog
 
-Update `databricks.yml` and `app.yaml` with your workspace-specific values:
+Edit `databricks.yml` and set the two required variables at the top:
 
 ```yaml
-UC_CATALOG: your_catalog
-UC_SCHEMA: your_schema
-DATABRICKS_WAREHOUSE_ID: your_warehouse_id
-LAKEBASE_PROJECT: your-lakebase-project
-VS_ENDPOINT: your_vs_endpoint
+variables:
+  catalog:
+    default: "your_catalog"   # ← set this to your UC catalog name
+  schema:
+    default: otel_rag_agent_demo  # schema created automatically; change if desired
 ```
+
+Also update the `workspace.profile` field to your Databricks CLI profile, and set `DATABRICKS_WAREHOUSE_ID` in the `apps.telco_agent.config.env` section.
 
 ### 2. Deploy the DAB bundle
 
 ```bash
-# Authenticate
+# Authenticate (if not already)
 databricks auth login --profile <your-profile>
 
-# Deploy resources (job + app)
-databricks bundle deploy --profile <your-profile>
+# Deploy job + app resources
+databricks bundle deploy
 ```
 
 ### 3. Run the data setup job
 
 ```bash
-databricks jobs run-now --job-name otel-demo-data-setup --profile <your-profile>
+databricks bundle run data_setup
 ```
 
-The job runs the following tasks. Tasks with no `depends_on` start immediately in parallel:
+The job DAG is:
+
+```
+setup_catalog_schema ──┬──► provision_endpoints ──────────────────────────┐
+                       │                                                    ▼
+                       ├──► generate_kpi_data ──► create_uc_functions ──► deploy_app
+                       │                                                    ▲
+                       └──► generate_documents ──► parse_documents ──►    │
+                                                        └──► create_vs_indexes ──┘
+provision_lakebase_app (independent) ─────────────────────────────────────┘
+```
 
 | Task | Depends on | What it does |
 |------|-----------|--------------|
-| `provision_endpoints` | — | Creates VS endpoint + deploys OTel embedding/reranker/LLM models to GPU_SMALL; provisions external Claude gateway if configured |
-| `generate_kpi_data` | — | Generates 90-day synthetic KPI Delta tables (50 sites, 6 regions) |
-| `generate_documents` | `generate_kpi_data` | Loads 23 telco docs from GitHub repo; falls back to Claude generation if not found |
+| `setup_catalog_schema` | — | Creates UC schema and `telco_docs` Volume (all tasks depend on this) |
+| `provision_endpoints` | `setup_catalog_schema` | Deploys VS endpoint + OTel embedding/reranker/LLM to GPU_SMALL |
+| `generate_kpi_data` | `setup_catalog_schema` | Generates 90-day synthetic KPI Delta tables (50 sites, 6 regions) |
+| `generate_documents` | `setup_catalog_schema` | Loads 23 telco docs from GitHub; falls back to Claude generation |
 | `parse_documents` | `generate_documents` | Chunks documents for Vector Search |
-| `create_vs_indexes` | `parse_documents` | Embeds chunks with OTel-Embedding-335M, creates 3 Delta Sync VS indexes |
+| `create_vs_indexes` | `provision_endpoints` + `parse_documents` | Embeds chunks, creates 3 Delta Sync VS indexes |
 | `create_uc_functions` | `generate_kpi_data` | Registers 5 UC SQL functions as agent tools |
-| `provision_lakebase_app` | — | Provisions Lakebase PostgreSQL for agent memory; creates Databricks App |
+| `provision_lakebase_app` | — | Provisions Lakebase PostgreSQL + Databricks App compute |
+| `deploy_app` | all above | Deploys agent source code to the App |
 
-`provision_endpoints` and `provision_lakebase_app` run in parallel with the data pipeline at job start. By the time `create_vs_indexes` needs the VS endpoint and embedding model (~30–45 min in), both are ready.
+`provision_endpoints` (20–30 min first run) runs in parallel with the document and KPI pipelines. `create_vs_indexes` waits for both the endpoint and parsed docs before indexing.
 
-### 4. Deploy and start the app
+### 4. Open the app
+
+The `deploy_app` task prints the live URL on completion. You can also find it via:
 
 ```bash
-databricks bundle run telco_agent --profile <your-profile>
+databricks apps get otel-telco-agent
 ```
 
 ### Repairing a failed run
@@ -266,8 +284,8 @@ All configuration is driven by environment variables (set in `databricks.yml` an
 | `LAKEBASE_PROJECT` | Lakebase project for memory | `telco-slm-agent-memory` |
 | `LAKEBASE_BRANCH` | Lakebase branch | `production` |
 | `LAKEBASE_DATABASE` | Memory database name | `agent_memory` |
-| `UC_CATALOG` | Unity Catalog catalog | `cmegdemos_catalog` |
-| `UC_SCHEMA` | Unity Catalog schema | `network_analytics_enablement` |
+| `UC_CATALOG` | Unity Catalog catalog | *(set via `variables.catalog` in `databricks.yml`)* |
+| `UC_SCHEMA` | Unity Catalog schema | `otel_rag_agent_demo` |
 | `DATABRICKS_WAREHOUSE_ID` | SQL warehouse for UC functions | — |
 
 ---

@@ -203,12 +203,21 @@ else:
 
         embed_model = SentenceTransformer("farbodtavakkoli/OTel-Embedding-335M")
 
+        from mlflow.models import infer_signature
+        _emb_vec = embed_model.encode("example telco query").tolist()
+        _emb_sig = infer_signature(
+            {"input": "example telco query"},
+            {"data": [{"embedding": _emb_vec, "index": 0, "object": "embedding"}],
+             "model": "otel-embedding", "object": "list",
+             "usage": {"prompt_tokens": 4, "total_tokens": 4}},
+        )
         with mlflow.start_run(run_name="register_otel_embedding_335m"):
             mlflow.sentence_transformers.log_model(
                 model=embed_model,
                 task="llm/v1/embeddings",
                 artifact_path="model",
                 registered_model_name=UC_EMBEDDING_MODEL,
+                signature=_emb_sig,
                 pip_requirements=[
                     "sentence-transformers>=3.0.0",
                     "torch>=2.0.0",
@@ -334,12 +343,19 @@ else:
                 return {"scores": scores}
 
         # ── Log + register ────────────────────────────────────────────────
+        from mlflow.models import infer_signature
+        import pandas as _pd
+        _rnk_sig = infer_signature(
+            _pd.DataFrame({"query": ["example query"], "passages": ['["passage one", "passage two"]']}),
+            {"scores": [0.9, 0.3]},
+        )
         with mlflow.start_run(run_name="register_otel_reranker_06b"):
             mlflow.pyfunc.log_model(
                 artifact_path="model",
                 python_model=OTelRerankerModel(),
                 artifacts={"model_path": tmpdir},
                 registered_model_name=UC_RERANKER_MODEL,
+                signature=_rnk_sig,
                 pip_requirements=[
                     "transformers>=4.40.0",
                     "torch>=2.0.0",
@@ -393,6 +409,7 @@ else:
         )
 
         with mlflow.start_run(run_name="register_otel_llm_12b_it"):
+            # signature is auto-set by MLflow when task="llm/v1/chat"; do NOT pass it manually
             mlflow.transformers.log_model(
                 transformers_model=llm_pipe,
                 task="llm/v1/chat",

@@ -91,6 +91,12 @@ for table_name, text_col in tables_to_embed:
     print(f"\nProcessing: {table_name}")
 
     df = spark.table(fqn)
+
+    # Idempotent: skip embedding computation if column already exists
+    if "embedding" in df.columns:
+        print(f"  Already has embeddings — skipping (delete table to force recompute)")
+        continue
+
     rows = df.collect()
     texts = [row[text_col] or "empty" for row in rows]
     print(f"  Chunks: {len(texts)}")
@@ -198,16 +204,23 @@ for idx_config in indexes:
     print(f"  Source: {source_table}")
     print(f"  Embedding: pre-computed (dim={EMBEDDING_DIM})")
 
-    vsc.create_delta_sync_index(
-        endpoint_name=vs_endpoint_name,
-        index_name=index_name,
-        source_table_name=source_table,
-        pipeline_type="TRIGGERED",
-        primary_key=primary_key,
-        embedding_vector_column="embedding",
-        embedding_dimension=EMBEDDING_DIM,
-    )
-    print(f"  Created: {index_name}")
+    try:
+        vsc.create_delta_sync_index(
+            endpoint_name=vs_endpoint_name,
+            index_name=index_name,
+            source_table_name=source_table,
+            pipeline_type="TRIGGERED",
+            primary_key=primary_key,
+            embedding_vector_column="embedding",
+            embedding_dimension=EMBEDDING_DIM,
+        )
+        print(f"  Created: {index_name}")
+    except Exception as e:
+        if "already exists" in str(e).lower():
+            print(f"  Index already exists — skipping create, syncing instead")
+            vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_name).sync()
+        else:
+            raise
 
 # COMMAND ----------
 

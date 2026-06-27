@@ -1,8 +1,16 @@
 bundle:
   name: otel-slm-agent-demo
 
+variables:
+  catalog:
+    default: ""                  # REQUIRED: set to your Unity Catalog catalog name
+    description: Unity Catalog catalog name
+  schema:
+    default: otel_rag_agent_demo # Schema will be created by 00_setup_catalog_schema if missing
+    description: Unity Catalog schema name
+
 workspace:
-  profile: fevm-cmegdemos
+  profile: DEFAULT               # Set to your Databricks CLI profile name
 
 resources:
   jobs:
@@ -22,6 +30,12 @@ resources:
             client: "5"
             dependencies:
               - databricks-vectorsearch
+        - environment_key: serverless_lakebase
+          spec:
+            client: "5"
+            dependencies:
+              - psycopg2-binary
+              - databricks-sdk==0.101.0
         - environment_key: serverless_endpoint_deploy
           spec:
             client: "5"
@@ -32,43 +46,75 @@ resources:
               - torch>=2.0.0
               - databricks-vectorsearch
       tasks:
-        # Runs immediately at job start, in parallel with generate_kpi_data.
-        # No explicit depends_on — 04_create_vs_indexes follows the 01→02→03→04
-        # chain (30–45 min), giving this task time to complete first.
+        # Runs first — creates the schema all downstream tasks write to.
+        - task_key: setup_catalog_schema
+          notebook_task:
+            notebook_path: ./notebooks/00_setup_catalog_schema.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+          environment_key: serverless_default
+
+        # Depends on schema existing (registers UC model artifacts).
         - task_key: provision_endpoints
           notebook_task:
             notebook_path: ./notebooks/00_provision_endpoints.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+          depends_on:
+            - task_key: setup_catalog_schema
           environment_key: serverless_endpoint_deploy
 
         - task_key: generate_kpi_data
           notebook_task:
             notebook_path: ./notebooks/01_generate_kpi_data.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+          depends_on:
+            - task_key: setup_catalog_schema
           environment_key: serverless_faker
 
+        # 02→03 run independently of 00/01, both gated by schema creation.
         - task_key: generate_documents
           notebook_task:
             notebook_path: ./notebooks/02_generate_documents.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
           depends_on:
-            - task_key: generate_kpi_data
+            - task_key: setup_catalog_schema
           environment_key: serverless_default
 
         - task_key: parse_documents
           notebook_task:
             notebook_path: ./notebooks/03_parse_documents.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
           depends_on:
             - task_key: generate_documents
           environment_key: serverless_default
 
+        # 04 depends on 00 (endpoint live) and 03 (parsed docs ready).
         - task_key: create_vs_indexes
           notebook_task:
             notebook_path: ./notebooks/04_create_vs_indexes.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
           depends_on:
+            - task_key: provision_endpoints
             - task_key: parse_documents
           environment_key: serverless_vs
 
         - task_key: create_uc_functions
           notebook_task:
             notebook_path: ./notebooks/05_create_uc_functions.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
           depends_on:
             - task_key: generate_kpi_data
           environment_key: serverless_default
@@ -76,6 +122,22 @@ resources:
         - task_key: provision_lakebase_app
           notebook_task:
             notebook_path: ./notebooks/07_provision_lakebase_app.py
+            base_parameters:
+              project_id: "telco-slm-agent-memory"
+              app_name: "otel-telco-agent"
+          environment_key: serverless_lakebase
+
+        - task_key: deploy_app
+          notebook_task:
+            notebook_path: ./notebooks/08_deploy_app.py
+            base_parameters:
+              app_name: "otel-telco-agent"
+              source_code_path: "${workspace.file_path}"
+          depends_on:
+            - task_key: parse_documents
+            - task_key: create_vs_indexes
+            - task_key: create_uc_functions
+            - task_key: provision_lakebase_app
           environment_key: serverless_default
 
   apps:
@@ -105,9 +167,9 @@ resources:
           - name: VS_ENDPOINT
             value: "demo_telco_vs_endpoint"
           - name: UC_CATALOG
-            value: "cmegdemos_catalog"
+            value: "${var.catalog}"
           - name: UC_SCHEMA
-            value: "network_analytics_enablement"
+            value: "${var.schema}"
           - name: DATABRICKS_WAREHOUSE_ID
             value: "7b65956f30d66feb"
       permissions:
