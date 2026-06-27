@@ -61,7 +61,10 @@ for i, region in enumerate(REGIONS):
 SITES = dict(list(SITES.items())[:50])
 
 DAYS = 90
-START_DATE = datetime(2026, 3, 25)  # 90 days before June 23, 2026
+# Anchor synthetic data to "now" so default look-back queries return fresh rows.
+END_TIMESTAMP = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+START_DATE = END_TIMESTAMP - timedelta(days=DAYS)
+print(f"Generating KPI data window: {START_DATE} -> {END_TIMESTAMP}")
 
 # COMMAND ----------
 
@@ -126,8 +129,8 @@ for _ in range(15):  # 15 anomaly events over 90 days
     anomaly_windows.append((anomaly_site, anomaly_start, anomaly_end))
 
 # Also inject a RECENT anomaly in Pacific Northwest for the demo walkthrough
-recent_anomaly_start = datetime(2026, 6, 21, 14, 0)  # 2 days ago
-recent_anomaly_end = datetime(2026, 6, 23, 8, 0)  # Still ongoing-ish
+recent_anomaly_end = END_TIMESTAMP - timedelta(hours=2)
+recent_anomaly_start = recent_anomaly_end - timedelta(hours=42)
 pnw_sites = [s for s, r in SITES.items() if r == "Pacific Northwest"]
 for site in pnw_sites[:3]:  # Hit 3 PNW sites
     anomaly_windows.append((site, recent_anomaly_start, recent_anomaly_end))
@@ -248,16 +251,17 @@ for _ in range(200):
     ))
 
 # Add recent PNW events that correlate with the KPI anomaly
+recent_event_base = END_TIMESTAMP - timedelta(days=2, hours=4)
 pnw_recent_events = [
-    Row(event_id="EVT-PNW-001", timestamp=datetime(2026, 6, 21, 14, 22),
+    Row(event_id="EVT-PNW-001", timestamp=recent_event_base + timedelta(minutes=22),
         site_id=pnw_sites[0], region="Pacific Northwest", event_type="ALARM",
         severity="MAJOR", description="High VSWR detected on sector antenna",
         resolved_at=None),
-    Row(event_id="EVT-PNW-002", timestamp=datetime(2026, 6, 21, 14, 45),
+    Row(event_id="EVT-PNW-002", timestamp=recent_event_base + timedelta(minutes=45),
         site_id=pnw_sites[1], region="Pacific Northwest", event_type="DEGRADATION",
         severity="MAJOR", description="Increased latency on S1-U interface",
         resolved_at=None),
-    Row(event_id="EVT-PNW-003", timestamp=datetime(2026, 6, 21, 15, 10),
+    Row(event_id="EVT-PNW-003", timestamp=recent_event_base + timedelta(hours=1, minutes=10),
         site_id=pnw_sites[2], region="Pacific Northwest", event_type="DEGRADATION",
         severity="CRITICAL", description="Throughput degradation - congestion detected",
         resolved_at=None),
@@ -291,6 +295,7 @@ display(df_events.limit(10))
 SEGMENTS = ["Consumer", "Enterprise", "Prepaid"]
 
 churn_rows = []
+recent_churn_spike_start = (END_TIMESTAMP - timedelta(days=6)).date()
 for day in range(DAYS):
     date = (START_DATE + timedelta(days=day)).date()
     for region in REGIONS:
@@ -299,7 +304,7 @@ for day in range(DAYS):
             churn = random.gauss(base_churn, base_churn * 0.15)
 
             # Spike churn in PNW during anomaly period
-            if region == "Pacific Northwest" and datetime(2026, 6, 21).date() <= date:
+            if region == "Pacific Northwest" and recent_churn_spike_start <= date:
                 churn += random.uniform(0.005, 0.015)
 
             net_adds = int(random.gauss(50, 30))

@@ -42,7 +42,7 @@ CREATE OR REPLACE FUNCTION `{catalog}`.`{schema}`.get_kpi_metrics(
   metric_name STRING COMMENT 'One of: throughput_mbps, latency_ms, coverage_pct, dropped_call_rate, handover_success_rate, attach_success_rate, volte_mos',
   region STRING DEFAULT NULL COMMENT 'Filter by region. Values: Pacific Northwest, Northeast, Southeast, Mountain West, Great Plains. NULL = all regions',
   site_id STRING DEFAULT NULL COMMENT 'Filter by specific site. NULL = all sites',
-  hours_back INT DEFAULT 24 COMMENT 'Look-back window in hours from now'
+  hours_back INT DEFAULT 168 COMMENT 'Look-back window in hours from now (default 7 days)'
 )
 RETURNS TABLE (
   timestamp TIMESTAMP,
@@ -85,7 +85,7 @@ CREATE OR REPLACE FUNCTION `{catalog}`.`{schema}`.get_threshold_breaches(
   threshold DOUBLE COMMENT 'Threshold value to check against',
   direction STRING DEFAULT 'above' COMMENT 'Check values above or below the threshold',
   region STRING DEFAULT NULL COMMENT 'Filter by region (Pacific Northwest, Northeast, Southeast, Mountain West, Great Plains). NULL = all',
-  hours_back INT DEFAULT 24 COMMENT 'Look-back window in hours'
+  hours_back INT DEFAULT 168 COMMENT 'Look-back window in hours (default 7 days)'
 )
 RETURNS TABLE (
   timestamp TIMESTAMP,
@@ -136,7 +136,7 @@ print("Created: get_threshold_breaches")
 spark.sql(f"""
 CREATE OR REPLACE FUNCTION `{catalog}`.`{schema}`.compare_regions(
   metric_name STRING COMMENT 'Metric to compare: throughput_mbps, latency_ms, coverage_pct, dropped_call_rate, handover_success_rate, attach_success_rate, volte_mos',
-  hours_back INT DEFAULT 24 COMMENT 'Look-back window in hours',
+  hours_back INT DEFAULT 168 COMMENT 'Look-back window in hours (default 7 days)',
   agg STRING DEFAULT 'avg' COMMENT 'Aggregation function: avg, max, min, p95'
 )
 RETURNS TABLE (
@@ -187,7 +187,7 @@ CREATE OR REPLACE FUNCTION `{catalog}`.`{schema}`.get_network_events(
   region STRING DEFAULT NULL COMMENT 'Filter by region (Pacific Northwest, Northeast, Southeast, Mountain West, Great Plains). NULL = all',
   severity STRING DEFAULT NULL COMMENT 'Filter by severity: CRITICAL, MAJOR, MINOR, WARNING. NULL = all',
   event_type STRING DEFAULT NULL COMMENT 'Filter by event type: OUTAGE, DEGRADATION, MAINTENANCE, ALARM. NULL = all',
-  hours_back INT DEFAULT 72 COMMENT 'Look-back window in hours',
+  hours_back INT DEFAULT 168 COMMENT 'Look-back window in hours (default 7 days)',
   unresolved_only BOOLEAN DEFAULT FALSE COMMENT 'If TRUE, only return events that have not been resolved'
 )
 RETURNS TABLE (
