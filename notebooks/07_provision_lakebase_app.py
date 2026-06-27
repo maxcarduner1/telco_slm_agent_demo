@@ -201,19 +201,29 @@ conn.close()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 2. Grant workspace users CAN_USE on Lakebase project
+# MAGIC ## 2. Create dedicated Lakebase access group and grant CAN_USE
 
 # COMMAND ----------
 
-# Grant the workspace 'users' group CAN_USE on this project so the App's
-# service principal (and any other workspace identity) can authenticate.
-api("PUT", f"api/2.0/permissions/database-projects/{project_id}", {
-    "access_control_list": [
-        {"group_name": "users",                           "permission_level": "CAN_USE"},
-        {"user_name":  spark.sql("SELECT current_user()").collect()[0][0], "permission_level": "CAN_MANAGE"},
-    ]
-})
-print(f"Granted CAN_USE to workspace 'users' group on '{project_id}'")
+# App SPs are not automatically in the workspace 'users' group, so we create
+# a dedicated group for this app, add its SP, and grant the group CAN_USE on
+# the Lakebase project. This is idempotent.
+
+from databricks.sdk.service.iam import Patch, PatchOp, PatchSchema
+
+group_name = f"{app_name}-lakebase-users"
+
+# Create group if it doesn't exist
+existing_group = None
+for g in w.groups.list(filter=f'displayName eq "{group_name}"'):
+    existing_group = g
+    break
+
+if existing_group is None:
+    existing_group = w.groups.create(display_name=group_name)
+    print(f"Created group '{group_name}' (id={existing_group.id})")
+else:
+    print(f"Group '{group_name}' already exists (id={existing_group.id})")
 
 # COMMAND ----------
 
@@ -250,6 +260,66 @@ if not app_exists:
     app_url = app_info.get("url", "")
 else:
     print("Skipping app creation — already exists.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 4. Add App SP to the group and grant group CAN_USE
+
+# COMMAND ----------
+
+app_info_now   = api("GET", f"api/2.0/apps/{app_name}")
+app_sp_id      = str(app_info_now.get("service_principal_id", ""))
+app_sp_client_id = app_info_now.get("service_principal_client_id", "")
+print(f"App SP id        : {app_sp_id}")
+print(f"App SP client_id : {app_sp_client_id}")
+
+if app_sp_id:
+    # Add SP to the dedicated group (idempotent — duplicate adds are no-ops)
+    w.groups.patch(
+        id=existing_group.id,
+        operations=[Patch(op=PatchOp.ADD, path="members", value=[{"value": app_sp_id}])],
+        schemas=[PatchSchema.URN_IETF_PARAMS_SCIM_API_MESSAGES_2_0_PATCH_OP],
+    )
+    print(f"Added SP {app_sp_id} to group '{group_name}'")
+
+    # Grant the group CAN_USE on the Lakebase project (workspace IAM layer)
+    api("PUT", f"api/2.0/permissions/database-projects/{project_id}", {
+        "access_control_list": [
+            {"group_name": group_name, "permission_level": "CAN_USE"},
+            {"user_name":  user_email, "permission_level": "CAN_MANAGE"},
+        ]
+    })
+    print(f"Granted CAN_USE to group '{group_name}' on '{project_id}'")
+
+    # Create/ensure a Lakebase OAuth role for the SP with databricks_superuser.
+    # App SPs are not auto-provisioned as Postgres users — we must register them
+    # explicitly with LAKEBASE_OAUTH_V1 auth so the token is accepted at connect time.
+    from databricks.sdk.service.postgres import (
+        Role as PgRole, RoleRoleSpec, RoleAuthMethod, RoleMembershipRole, RoleIdentityType
+    )
+    branch_parent = f"projects/{project_id}/branches/production"
+    existing_sp_role = None
+    for r in w.postgres.list_roles(parent=branch_parent):
+        if r.status and r.status.postgres_role == app_sp_client_id:
+            existing_sp_role = r
+            break
+
+    if existing_sp_role is None:
+        w.postgres.create_role(
+            parent=branch_parent,
+            role=PgRole(spec=RoleRoleSpec(
+                auth_method=RoleAuthMethod.LAKEBASE_OAUTH_V1,
+                identity_type=RoleIdentityType.SERVICE_PRINCIPAL,
+                membership_roles=[RoleMembershipRole.DATABRICKS_SUPERUSER],
+                postgres_role=app_sp_client_id,
+            )),
+        )
+        print(f"  Created Lakebase OAuth role for SP '{app_sp_client_id}' with databricks_superuser")
+    else:
+        print(f"  Lakebase OAuth role already exists for SP '{app_sp_client_id}'")
+else:
+    print("WARNING: Could not retrieve App SP id — skipping group membership")
 
 # COMMAND ----------
 
