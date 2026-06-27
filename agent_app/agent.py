@@ -14,7 +14,10 @@ from typing import Any, AsyncGenerator
 
 from langgraph.checkpoint.base import Checkpoint, CheckpointMetadata
 
-import mlflow
+try:
+    import mlflow
+except Exception:  # pragma: no cover - local fallback when mlflow deps are unavailable
+    mlflow = None
 import uuid_utils
 from databricks_langchain import ChatDatabricks
 from langchain_core.messages import AIMessageChunk, ToolMessage
@@ -38,7 +41,8 @@ from agent_app.prompts import SYSTEM_PROMPT
 from agent_app.tools import get_uc_function_tools, get_rag_tools
 
 logger = logging.getLogger(__name__)
-mlflow.langchain.autolog()
+if mlflow is not None:
+    mlflow.langchain.autolog()
 
 LLM_ENDPOINT = os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4")
 
@@ -108,7 +112,8 @@ async def stream_handler(
 ) -> AsyncGenerator[ResponsesAgentStreamEvent, None]:
     """Streaming handler using astream for reliable checkpointing."""
     thread_id = _get_thread_id(request)
-    mlflow.update_current_trace(metadata={"mlflow.trace.session": thread_id})
+    if mlflow is not None:
+        mlflow.update_current_trace(metadata={"mlflow.trace.session": thread_id})
 
     config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
 
@@ -131,41 +136,45 @@ async def stream_handler(
             try:
                 async for event in _process_stream(agent, input_state, config):
                     yield event
-            except ValueError as e:
-                if "ToolMessage" in str(e) and "tool_calls" in str(e):
-                    logger.warning(
-                        "Corrupted checkpoint for thread %s — clearing and retrying. Error: %s",
-                        thread_id, e,
-                    )
-                    # Overwrite the corrupted checkpoint with a clean empty state.
-                    # Use uuid7 (time-ordered) so this checkpoint is always fetched
-                    # as "latest" (lexicographically greater than any prior uuid4).
-                    clean_config = {
-                        "configurable": {"thread_id": thread_id, "checkpoint_ns": ""}
-                    }
-                    await checkpointer.aput(
-                        clean_config,
-                        Checkpoint(
-                            v=1,
-                            id=str(uuid_utils.uuid7()),
-                            ts="1970-01-01T00:00:00+00:00",
-                            channel_values={},
-                            channel_versions={},
-                            versions_seen={},
-                            pending_sends=[],
-                        ),
-                        CheckpointMetadata(source="update", step=-1, writes=None, parents={}),
-                        {},
-                    )
-                    full_messages = to_chat_completions_input(
-                        [i.model_dump() for i in request.input]
-                    )
-                    async for event in _process_stream(
-                        agent, {"messages": full_messages}, config
-                    ):
-                        yield event
-                else:
+            except Exception as e:
+                err = str(e)
+                is_invalid_tool_history = "tool_calls" in err and (
+                    "ToolMessage" in err or "INVALID_CHAT_HISTORY" in err
+                )
+                if not is_invalid_tool_history:
                     raise
+
+                logger.warning(
+                    "Corrupted checkpoint for thread %s — clearing and retrying. Error: %s",
+                    thread_id, e,
+                )
+                # Overwrite the corrupted checkpoint with a clean empty state.
+                # Use uuid7 (time-ordered) so this checkpoint is always fetched
+                # as "latest" (lexicographically greater than any prior uuid4).
+                clean_config = {
+                    "configurable": {"thread_id": thread_id, "checkpoint_ns": ""}
+                }
+                await checkpointer.aput(
+                    clean_config,
+                    Checkpoint(
+                        v=1,
+                        id=str(uuid_utils.uuid7()),
+                        ts="1970-01-01T00:00:00+00:00",
+                        channel_values={},
+                        channel_versions={},
+                        versions_seen={},
+                        pending_sends=[],
+                    ),
+                    CheckpointMetadata(source="update", step=-1, writes=None, parents={}),
+                    {},
+                )
+                full_messages = to_chat_completions_input(
+                    [i.model_dump() for i in request.input]
+                )
+                async for event in _process_stream(
+                    agent, {"messages": full_messages}, config
+                ):
+                    yield event
     else:
         agent = create_telco_agent()
         async for event in _process_stream(agent, input_state, config):

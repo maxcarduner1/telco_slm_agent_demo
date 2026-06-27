@@ -10,10 +10,14 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-import mlflow
+try:
+    import mlflow
+except Exception:  # pragma: no cover - local fallback when mlflow deps are unavailable
+    mlflow = None
 from databricks_ai_bridge.long_running import LongRunningAgentServer
 
-mlflow.langchain.autolog()
+if mlflow is not None:
+    mlflow.langchain.autolog()
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +32,7 @@ from agent_app.memory import (
 
 # MLflow experiment for traces
 MLFLOW_EXPERIMENT_ID = os.environ.get("MLFLOW_EXPERIMENT_ID", "")
-if MLFLOW_EXPERIMENT_ID:
+if mlflow is not None and MLFLOW_EXPERIMENT_ID:
     try:
         mlflow.set_experiment(experiment_id=MLFLOW_EXPERIMENT_ID)
     except Exception as e:
