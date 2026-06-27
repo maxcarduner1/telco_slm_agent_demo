@@ -14,17 +14,25 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("project_id", "telco-slm-agent-memory", "Lakebase Project ID")
-dbutils.widgets.text("app_name",   "otel-telco-agent",       "App Name")
-dbutils.widgets.text("catalog",    "",                        "UC Catalog (for SP USE CATALOG grant)")
+dbutils.widgets.text("project_id",          "telco-slm-agent-memory", "Lakebase Project ID")
+dbutils.widgets.text("app_name",            "otel-telco-agent",       "App Name")
+dbutils.widgets.text("catalog",             "",                        "UC Catalog (for SP USE CATALOG grant)")
+dbutils.widgets.text("embedding_endpoint",  "otel-embedding2-300m",   "Embedding Serving Endpoint")
+dbutils.widgets.text("reranker_endpoint",   "otel-reranker-600m",     "Reranker Serving Endpoint")
+dbutils.widgets.text("llm_endpoint",        "otel-llm-1b-it",         "LLM Serving Endpoint")
+dbutils.widgets.text("vs_endpoint",         "demo_telco_vs_endpoint", "Vector Search Endpoint")
 
 # COMMAND ----------
 
 import time
 from databricks.sdk import WorkspaceClient
 
-project_id = dbutils.widgets.get("project_id") or "telco-slm-agent-memory"
-app_name   = dbutils.widgets.get("app_name")   or "otel-telco-agent"
+project_id         = dbutils.widgets.get("project_id")         or "telco-slm-agent-memory"
+app_name           = dbutils.widgets.get("app_name")           or "otel-telco-agent"
+embedding_endpoint = dbutils.widgets.get("embedding_endpoint") or "otel-embedding2-300m"
+reranker_endpoint  = dbutils.widgets.get("reranker_endpoint")  or "otel-reranker-600m"
+llm_endpoint       = dbutils.widgets.get("llm_endpoint")       or "otel-llm-1b-it"
+vs_endpoint        = dbutils.widgets.get("vs_endpoint")        or "demo_telco_vs_endpoint"
 
 # SDK client with ambient notebook credentials
 w = WorkspaceClient()
@@ -325,6 +333,52 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## 5. Grant App SP CAN_QUERY on serving endpoints and CAN_USE on VS endpoint
+
+# COMMAND ----------
+
+# App SPs are not automatically granted query access to serving endpoints or the
+# Vector Search endpoint. We grant permissions to the same group used for Lakebase
+# so all App SP permissions are managed in one place.
+#
+# Serving endpoints  → CAN_QUERY  (api/2.0/permissions/serving-endpoints/{name})
+# VS endpoint        → CAN_USE    (api/2.0/permissions/vector-search-endpoints/{name})
+
+if app_sp_id:
+    serving_endpoints = [
+        ep for ep in [embedding_endpoint, reranker_endpoint, llm_endpoint]
+        if ep.strip()
+    ]
+
+    for ep_name in serving_endpoints:
+        try:
+            api("PUT", f"api/2.0/permissions/serving-endpoints/{ep_name}", {
+                "access_control_list": [
+                    {"group_name": group_name, "permission_level": "CAN_QUERY"},
+                    {"user_name":  user_email, "permission_level": "CAN_MANAGE"},
+                ]
+            })
+            print(f"Granted CAN_QUERY to group '{group_name}' on serving endpoint '{ep_name}'")
+        except Exception as e:
+            print(f"WARNING: Could not set permissions on '{ep_name}': {e}")
+
+    if vs_endpoint.strip():
+        try:
+            api("PUT", f"api/2.0/permissions/vector-search-endpoints/{vs_endpoint}", {
+                "access_control_list": [
+                    {"group_name": group_name, "permission_level": "CAN_USE"},
+                    {"user_name":  user_email, "permission_level": "CAN_MANAGE"},
+                ]
+            })
+            print(f"Granted CAN_USE to group '{group_name}' on VS endpoint '{vs_endpoint}'")
+        except Exception as e:
+            print(f"WARNING: Could not set permissions on VS endpoint '{vs_endpoint}': {e}")
+else:
+    print("WARNING: No App SP id — skipping endpoint permission grants")
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Summary
 
 # COMMAND ----------
@@ -339,3 +393,11 @@ print(f"  Database       : agent_memory")
 print()
 print(f"Databricks App   : {app_name}")
 print(f"  URL            : {app_url}")
+print()
+print(f"App SP group     : {group_name}")
+print(f"  Lakebase       : CAN_USE  on '{project_id}'")
+for _ep in [embedding_endpoint, reranker_endpoint, llm_endpoint]:
+    if _ep.strip():
+        print(f"  Serving EP     : CAN_QUERY on '{_ep}'")
+if vs_endpoint.strip():
+    print(f"  VS endpoint    : CAN_USE  on '{vs_endpoint}'")
