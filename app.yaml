@@ -1,5 +1,11 @@
 command: ["python", "scripts/start_app.py"]
 
+resources:
+  - name: lakebase-memory
+    description: "Lakebase PostgreSQL for agent memory"
+    database:
+      database_resource_name: "telco-slm-agent-memory"
+
 env:
   - name: CHAT_APP_PORT
     value: "3000"
