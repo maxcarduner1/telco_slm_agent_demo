@@ -12,10 +12,10 @@ from langchain_core.tools import tool
 from databricks_langchain import UCFunctionToolkit
 from databricks.sdk import WorkspaceClient
 
-# Configuration
-CATALOG = os.environ.get("UC_CATALOG", "cmegdemos_catalog")
-SCHEMA  = os.environ.get("UC_SCHEMA", "network_analytics_enablement")
-VS_ENDPOINT = os.environ.get("VS_ENDPOINT", "demo_telco_vs_endpoint")
+# Configuration — all required, no hardcoded defaults
+CATALOG            = os.environ["UC_CATALOG"]
+SCHEMA             = os.environ["UC_SCHEMA"]
+VS_ENDPOINT        = os.environ.get("VS_ENDPOINT", "demo_telco_vs_endpoint")
 EMBEDDING_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT", "otel-embedding2-300m")
 EMBEDDING_DIM = 768
 
@@ -23,7 +23,7 @@ EMBEDDING_DIM = 768
 def get_uc_function_tools():
     """Load UC functions as LangGraph tools via UCFunctionToolkit."""
     toolkit = UCFunctionToolkit(
-        warehouse_id=os.environ.get("DATABRICKS_WAREHOUSE_ID", "7b65956f30d66feb"),
+        warehouse_id=os.environ["DATABRICKS_WAREHOUSE_ID"],
         function_names=[
             f"{CATALOG}.{SCHEMA}.get_kpi_metrics",
             f"{CATALOG}.{SCHEMA}.get_threshold_breaches",
