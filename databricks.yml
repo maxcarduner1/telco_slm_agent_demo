@@ -133,7 +133,7 @@ resources:
       description: "Telco Network Analytics Agent powered by OTel SLMs + LangGraph"
       source_code_path: ./
       config:
-        command: ["uvicorn", "agent_app.server:app", "--host", "0.0.0.0", "--port", "8000"]
+        # command is defined in app.yaml (starts both backend uvicorn + frontend)
         env:
           - name: MLFLOW_TRACKING_URI
             value: "databricks"
