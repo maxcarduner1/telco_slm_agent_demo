@@ -1,6 +1,6 @@
-# OTel SLM Agent Demo — Telco Network Analytics Assistant
+# OTel SLM Agent Demo — TelcoGPT Solution Accelerator
 
-A production-ready agentic telecom network operations assistant ("TelcoGPT") built on Databricks. It demonstrates how **Open Telco (OTel) Small Language Models** can power cost-efficient, domain-specialized RAG while a frontier model (Claude Sonnet 4) handles supervisor orchestration — all deployed as a full-stack Databricks App with long-term memory.
+This repository is a **solution accelerator for a TelcoGPT proof-of-concept (POC) on Databricks**. It demonstrates how **Open Telco (OTel) Small Language Models** can power cost-efficient, domain-specialized RAG while a frontier model (Claude Sonnet 4) handles supervisor orchestration — all deployed as a full-stack Databricks App with long-term memory.
 
 ## Overview
 
@@ -10,6 +10,9 @@ A production-ready agentic telecom network operations assistant ("TelcoGPT") bui
 - **Domain-specific RAG** — Retrieval over operational runbooks, 3GPP/O-RAN standards, and incident post-mortems using OTel SLMs
 - **Multi-agent orchestration** — LangGraph supervisor routes to specialized sub-agents, each backed by a dedicated Vector Search index
 - **Persistent memory** — Lakebase (PostgreSQL autoscale) for both conversation state and long-term user preferences
+
+> This accelerator is intended for POC/demo workflows and technical validation.  
+> It is not a packaged production reference architecture.
 
 ### Key Design Goals
 
@@ -94,8 +97,7 @@ Otel_SLM_Agent_Demo/
 │   ├── 04_create_vs_indexes.py       # Vector Search indexes with OTel-Embedding-335M
 │   ├── 05_create_uc_functions.py     # UC SQL functions as agent tools
 │   ├── 06_test_uc_functions.py       # Validate UC function outputs
-│   ├── 07_provision_lakebase_app.py  # Lakebase memory + App compute provisioning
-│   └── 08_deploy_app.py              # Deploy agent code to the Databricks App
+│   └── 07_provision_lakebase_app.py  # Lakebase memory + App compute provisioning
 ├── docs/                             # Pre-generated telco documents (committed to repo)
 │   ├── runbooks/                     # 10 operational runbooks
 │   ├── standards/                    # 5 standards summaries (3GPP, O-RAN)
@@ -109,6 +111,7 @@ Otel_SLM_Agent_Demo/
 ├── e2e-chatbot-app-next/             # React + Express.js chat UI (full-stack)
 ├── scripts/
 │   ├── start_app.py                  # Start the chat application
+│   ├── deploy_app.py                 # Utility script to deploy Databricks App source
 │   └── pull_docs_from_volume.sh      # Pull generated docs from UC Volume → docs/ for committing
 ├── databricks.yml                    # DAB bundle (data setup job + app resource)
 ├── app.yaml                          # Chat app runtime config
