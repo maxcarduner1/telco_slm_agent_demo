@@ -17,14 +17,20 @@
 
 dbutils.widgets.text("app_name",         "otel-telco-agent", "App Name")
 dbutils.widgets.text("source_code_path", ".",                "Source Code Path")
+dbutils.widgets.text("catalog",          "",                 "UC Catalog")
+dbutils.widgets.text("schema",           "",                 "UC Schema")
+dbutils.widgets.text("warehouse_id",     "",                 "SQL Warehouse ID")
 
 # COMMAND ----------
 
 import requests
 import time
 
-app_name         = dbutils.widgets.get("app_name")
-source_code_path = dbutils.widgets.get("source_code_path")
+app_name         = dbutils.widgets.get("app_name")         or "otel-telco-agent"
+source_code_path = dbutils.widgets.get("source_code_path") or "."
+catalog          = dbutils.widgets.get("catalog")
+schema           = dbutils.widgets.get("schema")
+warehouse_id     = dbutils.widgets.get("warehouse_id")
 
 ws_url = spark.conf.get("spark.databricks.workspaceUrl")
 token  = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
@@ -61,6 +67,40 @@ print(f"App '{app_name}' found.")
 print(f"  Compute : {compute_state}")
 print(f"  App     : {app_state}")
 print(f"  URL     : {app_info.get('url', '')}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 1a. Patch workspace-specific env vars into the app config
+
+# COMMAND ----------
+
+# Bundle variables (catalog, schema, warehouse_id) are passed as base_parameters
+# from databricks.yml and injected here so they take effect at app startup.
+# This bridges the gap between databricks.yml variables and app.yaml (which has
+# no native variable interpolation support).
+
+env_overrides = {}
+if catalog:      env_overrides["UC_CATALOG"]             = catalog
+if schema:       env_overrides["UC_SCHEMA"]              = schema
+if warehouse_id: env_overrides["DATABRICKS_WAREHOUSE_ID"] = warehouse_id
+
+if env_overrides:
+    current_env = app_info.get("config", {}).get("env", []) if isinstance(app_info.get("config"), dict) else []
+    # Merge: keep existing vars not in overrides, then add overrides
+    env_map = {e["name"]: e["value"] for e in current_env if isinstance(e, dict) and "name" in e}
+    env_map.update(env_overrides)
+    new_env = [{"name": k, "value": v} for k, v in env_map.items()]
+
+    patch_resp = api("PATCH", f"api/2.0/apps/{app_name}", {
+        "config": {"env": new_env}
+    })
+    if patch_resp.status_code in (200, 201):
+        print(f"Patched app env vars: {list(env_overrides.keys())}")
+    else:
+        print(f"WARNING: Could not patch env vars ({patch_resp.status_code}): {patch_resp.text[:200]}")
+else:
+    print("No env overrides provided — skipping env patch.")
 
 # COMMAND ----------
 

@@ -178,13 +178,12 @@ databricks bundle run data_setup
 The job DAG is:
 
 ```
-setup_catalog_schema ──┬──► provision_endpoints ──────────────────────────┐
-                       │                                                    ▼
-                       ├──► generate_kpi_data ──► create_uc_functions ──► deploy_app
-                       │                                                    ▲
-                       └──► generate_documents ──► parse_documents ──►    │
-                                                        └──► create_vs_indexes ──┘
-provision_lakebase_app (independent) ─────────────────────────────────────┘
+setup_catalog_schema ──┬──► provision_endpoints ──────────────────────────────────────────┐
+                       │                                                                    │
+                       ├──► generate_kpi_data ──► create_uc_functions                      │
+                       │                                                                    │
+                       └──► generate_documents ──► parse_documents ──► create_vs_indexes ──┘
+provision_lakebase_app (independent)
 ```
 
 | Task | Depends on | What it does |
@@ -196,14 +195,18 @@ provision_lakebase_app (independent) ──────────────�
 | `parse_documents` | `generate_documents` | Chunks documents for Vector Search |
 | `create_vs_indexes` | `provision_endpoints` + `parse_documents` | Embeds chunks, creates 3 Delta Sync VS indexes |
 | `create_uc_functions` | `generate_kpi_data` | Registers 5 UC SQL functions as agent tools |
-| `provision_lakebase_app` | — | Provisions Lakebase PostgreSQL + Databricks App compute |
-| `deploy_app` | all above | Deploys agent source code to the App |
+| `provision_lakebase_app` | — | Provisions Lakebase PostgreSQL + App compute; configures SP auth |
 
-`provision_endpoints` (20–30 min first run) runs in parallel with the document and KPI pipelines. `create_vs_indexes` waits for both the endpoint and parsed docs before indexing.
+`provision_endpoints` (20–30 min first run) runs in parallel with the document and KPI pipelines.
 
-### 4. Open the app
+### 4. Deploy the app
 
-The `deploy_app` task prints the live URL on completion. You can also find it via:
+```bash
+databricks bundle run telco_agent
+```
+
+This deploys the app source code with all bundle variables (`${var.catalog}`, `${var.schema}`)
+properly resolved. The app URL is printed on completion.
 
 ```bash
 databricks apps get otel-telco-agent

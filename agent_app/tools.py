@@ -14,7 +14,7 @@ from databricks.sdk import WorkspaceClient
 
 # Configuration
 CATALOG = os.environ.get("UC_CATALOG", "cmegdemos_catalog")
-SCHEMA = os.environ.get("UC_SCHEMA", "network_analytics_enablement")
+SCHEMA  = os.environ.get("UC_SCHEMA", "network_analytics_enablement")
 VS_ENDPOINT = os.environ.get("VS_ENDPOINT", "demo_telco_vs_endpoint")
 EMBEDDING_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT", "otel-embedding2-300m")
 EMBEDDING_DIM = 768

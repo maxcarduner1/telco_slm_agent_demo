@@ -127,19 +127,6 @@ resources:
               app_name: "otel-telco-agent"
           environment_key: serverless_lakebase
 
-        - task_key: deploy_app
-          notebook_task:
-            notebook_path: ./notebooks/08_deploy_app.py
-            base_parameters:
-              app_name: "otel-telco-agent"
-              source_code_path: "${workspace.file_path}"
-          depends_on:
-            - task_key: parse_documents
-            - task_key: create_vs_indexes
-            - task_key: create_uc_functions
-            - task_key: provision_lakebase_app
-          environment_key: serverless_default
-
   apps:
     telco_agent:
       name: "otel-telco-agent"
