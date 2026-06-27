@@ -201,7 +201,24 @@ conn.close()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 2. Provision Databricks App
+# MAGIC ## 2. Grant workspace users CAN_USE on Lakebase project
+
+# COMMAND ----------
+
+# Grant the workspace 'users' group CAN_USE on this project so the App's
+# service principal (and any other workspace identity) can authenticate.
+api("PUT", f"api/2.0/permissions/database-projects/{project_id}", {
+    "access_control_list": [
+        {"group_name": "users",                           "permission_level": "CAN_USE"},
+        {"user_name":  spark.sql("SELECT current_user()").collect()[0][0], "permission_level": "CAN_MANAGE"},
+    ]
+})
+print(f"Granted CAN_USE to workspace 'users' group on '{project_id}'")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 3. Provision Databricks App
 
 # COMMAND ----------
 
