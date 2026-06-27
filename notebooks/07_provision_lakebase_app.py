@@ -341,38 +341,69 @@ else:
 # Vector Search endpoint. We grant permissions to the same group used for Lakebase
 # so all App SP permissions are managed in one place.
 #
-# Serving endpoints  → CAN_QUERY  (api/2.0/permissions/serving-endpoints/{name})
-# VS endpoint        → CAN_USE    (api/2.0/permissions/vector-search-endpoints/{name})
+# Serving endpoints  → CAN_QUERY  (api/2.0/permissions/serving-endpoints/{id})
+# VS endpoint        → CAN_USE    (api/2.0/permissions/vector-search-endpoints/{id})
 
 if app_sp_id:
+    # Resolve endpoint names to IDs because permissions APIs require IDs.
+    serving_by_name = {}
+    try:
+        serving_list = api("GET", "api/2.0/serving-endpoints")
+        serving_items = serving_list.get("endpoints", []) if isinstance(serving_list, dict) else []
+        for ep in serving_items:
+            name = ep.get("name", "")
+            ep_id = ep.get("id", "")
+            if name and ep_id:
+                serving_by_name[name] = ep_id
+    except Exception as e:
+        print(f"WARNING: Could not list serving endpoints for ID lookup: {e}")
+
+    vs_id = None
+    try:
+        vs_list = api("GET", "api/2.0/vector-search/endpoints")
+        vs_items = vs_list.get("endpoints", []) if isinstance(vs_list, dict) else []
+        for ep in vs_items:
+            if ep.get("name", "") == vs_endpoint:
+                vs_id = ep.get("id", "")
+                break
+    except Exception as e:
+        print(f"WARNING: Could not list vector search endpoints for ID lookup: {e}")
+
     serving_endpoints = [
         ep for ep in [embedding_endpoint, reranker_endpoint, llm_endpoint]
         if ep.strip()
     ]
 
     for ep_name in serving_endpoints:
+        ep_id = serving_by_name.get(ep_name)
+        if not ep_id:
+            print(f"WARNING: Could not resolve serving endpoint ID for '{ep_name}'")
+            continue
         try:
-            api("PUT", f"api/2.0/permissions/serving-endpoints/{ep_name}", {
+            api("PUT", f"api/2.0/permissions/serving-endpoints/{ep_id}", {
                 "access_control_list": [
                     {"group_name": group_name, "permission_level": "CAN_QUERY"},
                     {"user_name":  user_email, "permission_level": "CAN_MANAGE"},
                 ]
             })
-            print(f"Granted CAN_QUERY to group '{group_name}' on serving endpoint '{ep_name}'")
+            print(f"Granted CAN_QUERY to group '{group_name}' on serving endpoint '{ep_name}' (id={ep_id})")
         except Exception as e:
             print(f"WARNING: Could not set permissions on '{ep_name}': {e}")
 
     if vs_endpoint.strip():
-        try:
-            api("PUT", f"api/2.0/permissions/vector-search-endpoints/{vs_endpoint}", {
-                "access_control_list": [
-                    {"group_name": group_name, "permission_level": "CAN_USE"},
-                    {"user_name":  user_email, "permission_level": "CAN_MANAGE"},
-                ]
-            })
-            print(f"Granted CAN_USE to group '{group_name}' on VS endpoint '{vs_endpoint}'")
-        except Exception as e:
-            print(f"WARNING: Could not set permissions on VS endpoint '{vs_endpoint}': {e}")
+        if not vs_id:
+            print(f"WARNING: Could not resolve VS endpoint ID for '{vs_endpoint}'")
+        else:
+            try:
+                api("PUT", f"api/2.0/permissions/vector-search-endpoints/{vs_id}", {
+                    "access_control_list": [
+                        {"group_name": group_name, "permission_level": "CAN_USE"},
+                        {"user_name":  user_email, "permission_level": "CAN_MANAGE"},
+                    ]
+                })
+                print(f"Granted CAN_USE to group '{group_name}' on VS endpoint '{vs_endpoint}' (id={vs_id})")
+            except Exception as e:
+                print(f"WARNING: Could not set permissions on VS endpoint '{vs_endpoint}': {e}")
 else:
     print("WARNING: No App SP id — skipping endpoint permission grants")
 
