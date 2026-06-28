@@ -8,3 +8,5 @@ __pycache__/
 
 # Reference diagram PDFs (not code)
 *.pdf
+to-do.md
+instructions.md
