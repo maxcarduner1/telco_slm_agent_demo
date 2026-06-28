@@ -196,6 +196,8 @@ async def _process_stream(
     active_text_item_id: str | None = None
     active_text_content = ""
     active_tool_calls: dict[int, dict] = {}
+    saw_text_output = False
+    tool_outputs_for_fallback: list[str] = []
 
     def _response_obj(output: list | None = None) -> dict:
         return {
@@ -216,6 +218,39 @@ async def _process_stream(
         in_turn = False
         active_text_item_id = None
         active_text_content = ""
+
+    def _tool_output_looks_empty(output: str) -> bool:
+        try:
+            parsed = json.loads(output)
+        except Exception:
+            parsed = None
+
+        if isinstance(parsed, dict) and parsed.get("format") == "CSV":
+            value = str(parsed.get("value", ""))
+            rows = [line for line in value.splitlines() if line.strip()]
+            return len(rows) <= 1
+
+        normalized = output.strip().lower()
+        return normalized.startswith("no relevant") or normalized in {
+            "",
+            "no data",
+            "no results",
+        }
+
+    def _fallback_text() -> str:
+        if tool_outputs_for_fallback and all(
+            _tool_output_looks_empty(output) for output in tool_outputs_for_fallback
+        ):
+            return (
+                "No data was returned for the requested filters and time period. "
+                "I did not find rows to summarize. Try a wider lookback window or "
+                "different region, site, metric, severity, or event type."
+            )
+
+        return (
+            "I ran the requested tool, but did not receive a final synthesized answer "
+            "from the orchestrator. Please retry or ask for a narrower summary."
+        )
 
     async for event in agent.astream(
         input_state, config, stream_mode=["updates", "messages"]
@@ -330,6 +365,7 @@ async def _process_stream(
                             if isinstance(msg.content, str)
                             else json.dumps(msg.content)
                         )
+                        tool_outputs_for_fallback.append(content)
                         item = create_function_call_output_item(
                             call_id=msg.tool_call_id,
                             output=content,
@@ -380,6 +416,7 @@ async def _process_stream(
                         active_tool_calls.clear()
 
                     elif hasattr(msg, "content") and msg.content:
+                        saw_text_output = True
                         has_ai_message = True
                         if not in_turn:
                             _start_turn()
@@ -437,3 +474,46 @@ async def _process_stream(
                         response=_response_obj(turn_output_items),
                     )
                     _end_turn()
+
+    if tool_outputs_for_fallback and not saw_text_output:
+        if not in_turn:
+            _start_turn()
+            yield ResponsesAgentStreamEvent(
+                type="response.created",
+                response=_response_obj(),
+            )
+
+        item_id = str(uuid_utils.uuid7())
+        text = _fallback_text()
+        yield ResponsesAgentStreamEvent(
+            type="response.output_item.added",
+            item={
+                "type": "message",
+                "id": item_id,
+                "role": "assistant",
+                "status": "in_progress",
+                "content": [],
+            },
+            output_index=output_index,
+        )
+        yield ResponsesAgentStreamEvent(
+            type="response.content_part.done",
+            item_id=item_id,
+            output_index=output_index,
+            content_index=0,
+            part={"type": "output_text", "text": text, "annotations": []},
+        )
+
+        item = create_text_output_item(text=text, id=item_id)
+        item["status"] = "completed"
+        turn_output_items.append(item)
+        yield ResponsesAgentStreamEvent(
+            type="response.output_item.done",
+            item=item,
+            output_index=output_index,
+        )
+        yield ResponsesAgentStreamEvent(
+            type="response.completed",
+            response=_response_obj(turn_output_items),
+        )
+        _end_turn()

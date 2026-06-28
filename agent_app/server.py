@@ -30,11 +30,16 @@ from agent_app.memory import (
     set_lakebase_resources,
 )
 
-# MLflow experiment for traces
+# MLflow experiment for traces. Prefer a portable experiment name because
+# numeric experiment IDs are workspace-specific.
 MLFLOW_EXPERIMENT_ID = os.environ.get("MLFLOW_EXPERIMENT_ID", "")
-if mlflow is not None and MLFLOW_EXPERIMENT_ID:
+MLFLOW_EXPERIMENT_NAME = os.environ.get("MLFLOW_EXPERIMENT_NAME", "")
+if mlflow is not None and (MLFLOW_EXPERIMENT_ID or MLFLOW_EXPERIMENT_NAME):
     try:
-        mlflow.set_experiment(experiment_id=MLFLOW_EXPERIMENT_ID)
+        if MLFLOW_EXPERIMENT_ID:
+            mlflow.set_experiment(experiment_id=MLFLOW_EXPERIMENT_ID)
+        else:
+            mlflow.set_experiment(experiment_name=MLFLOW_EXPERIMENT_NAME)
     except Exception as e:
         logger.warning(f"Could not set MLflow experiment: {e}")
 

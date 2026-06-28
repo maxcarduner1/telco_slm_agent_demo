@@ -264,19 +264,34 @@ databricks apps get otel-telco-agent --profile <profile>
 - KPI prompt (no tool failure)
 - SQL tool prompt (`get_kpi_metrics` / `compare_regions`)
 - RAG prompt (`search_runbooks`)
+- Empty-period prompt (should return a clear "no data" response, not silently widen the window)
 
 Recommended KPI smoke prompts:
 - `List one telecom KPI we monitor.`
 - `Show dropped call rate by region for last 24 hours.`
+- `Show dropped call rate by region for the last 1 hour.`
 
 Recommended RAG smoke prompt:
 - `Find runbook guidance for high dropped call rate and summarize two steps.`
 
 If the runbook query returns "No relevant runbook content found" but HTTP is `200`, treat it as a content/retrieval quality issue (not a deployment blocker).
 
-7) **Known recovery actions**
+7) **Verify app health from logs**
+
+```bash
+databricks apps logs otel-telco-agent --profile <profile>
+```
+
+Look for:
+- `Lakebase setup complete` — confirms conversation checkpointing / long-term memory is enabled.
+- `Experiment with name '/Shared/otel-telco-agent-traces'` or no MLflow experiment warnings — confirms tracing is configured.
+- No `Lakebase not configured`, `Database not configured`, `Could not set MLflow experiment`, or `Failed to start span` warnings.
+
+8) **Known recovery actions**
 - `USE CATALOG`/`USE SCHEMA`/`EXECUTE` errors: rerun `04_create_vs_indexes` with correct `catalog`, `schema`, and `app_name`.
 - `403` on embedding/reranker endpoint: rerun `07_provision_lakebase_app` to reapply serving endpoint `CAN_QUERY` grants to the app SP.
+- `Lakebase not configured` or `Database not configured`: verify `LAKEBASE_AUTOSCALING_PROJECT`, `LAKEBASE_AUTOSCALING_BRANCH`, and `LAKEBASE_AGENT_MEMORY_SCHEMA` are present in the active app deployment.
+- `Failed to start span` or invalid experiment ID: verify the app uses `MLFLOW_EXPERIMENT_NAME=/Shared/otel-telco-agent-traces`, not a workspace-specific `MLFLOW_EXPERIMENT_ID`.
 - Workspace mismatch during deploy: clear `.databricks/bundle/default` and redeploy.
 
 Current default permission model is **SP-based (M2M)** with direct UC grants to the app service principal.  
@@ -354,9 +369,10 @@ All configuration is driven by environment variables (set in `databricks.yml` an
 | `LLM_ENDPOINT` | Frontier model endpoint | `databricks-claude-sonnet-4` |
 | `EMBEDDING_ENDPOINT` | OTel embedding endpoint | `otel-embedding2-300m` |
 | `VS_ENDPOINT` | Vector Search endpoint name | `demo_telco_vs_endpoint` |
-| `LAKEBASE_PROJECT` | Lakebase project for memory | `telco-slm-agent-memory` |
-| `LAKEBASE_BRANCH` | Lakebase branch | `production` |
-| `LAKEBASE_DATABASE` | Memory database name | `agent_memory` |
+| `LAKEBASE_AUTOSCALING_PROJECT` | Lakebase project for memory | `telco-slm-agent-memory` |
+| `LAKEBASE_AUTOSCALING_BRANCH` | Lakebase branch | `production` |
+| `LAKEBASE_AGENT_MEMORY_SCHEMA` | Memory schema name | `agent_memory` |
+| `MLFLOW_EXPERIMENT_NAME` | Portable MLflow trace experiment name | `/Shared/otel-telco-agent-traces` |
 | `UC_CATALOG` | Unity Catalog catalog | *(set via `variables.catalog` in `databricks.yml`)* |
 | `UC_SCHEMA` | Unity Catalog schema | `otel_rag_agent_demo` |
 | `DATABRICKS_WAREHOUSE_ID` | SQL warehouse for UC functions | — |

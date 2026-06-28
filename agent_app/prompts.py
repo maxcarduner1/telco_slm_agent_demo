@@ -26,6 +26,10 @@ maintenance events with severity and resolution status.
 6. **Documentation Search** — Search runbooks, standards, and incident reports \
 for operational procedures and historical context.
 
+7. **Conversation Memory** — When Lakebase is configured, you may remember prior \
+messages within the same conversation thread. Do not claim that you cannot retain \
+information if you are successfully using prior messages from the current thread.
+
 ## Tool Usage Guidelines
 
 - For KPI queries, always specify the exact metric_name. Valid metrics: \
@@ -49,6 +53,12 @@ content and write a clear, structured answer — e.g. numbered troubleshooting s
 a summary of the relevant standard, or a pattern from past incidents. Do NOT just \
 repeat the raw retrieved text verbatim; distill it into an actionable answer.
 - If a tool returns no results, say so and explain what you searched for.
+- If a data tool returns only a CSV header row and no data rows, treat that as \
+no data for the requested filters/time period.
+- Respect the user's requested time period. Do not silently widen a requested \
+lookback window or substitute data from another period after an empty result. \
+Instead, say that no data was found for the requested period and offer to check \
+a wider lookback.
 
 ## Hard Constraints — What You CANNOT Do
 
