@@ -100,16 +100,19 @@ resources:
             - task_key: generate_documents
           environment_key: serverless_default
 
-        # 04 depends on 00 (endpoint live) and 03 (parsed docs ready).
+        # 04 depends on 00 (endpoint live), 03 (parsed docs ready), and 07
+        # (App SP available) so UC grants can run after assets are created.
         - task_key: create_vs_indexes
           notebook_task:
             notebook_path: ./notebooks/04_create_vs_indexes.py
             base_parameters:
               catalog: "${var.catalog}"
               schema: "${var.schema}"
+              app_name: "otel-telco-agent"
           depends_on:
             - task_key: provision_endpoints
             - task_key: parse_documents
+            - task_key: provision_lakebase_app
           environment_key: serverless_vs
 
         - task_key: create_uc_functions
@@ -128,8 +131,6 @@ resources:
             base_parameters:
               project_id: "telco-slm-agent-memory"
               app_name: "otel-telco-agent"
-              catalog: "${var.catalog}"
-              schema: "${var.schema}"
           environment_key: serverless_lakebase
 
   apps:

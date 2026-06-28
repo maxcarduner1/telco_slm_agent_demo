@@ -181,12 +181,13 @@ databricks bundle run data_setup
 The job DAG is:
 
 ```
-setup_catalog_schema ──┬──► provision_endpoints ──────────────────────────────────────────┐
-                       │                                                                    │
-                       ├──► generate_kpi_data ──► create_uc_functions                      │
-                       │                                                                    │
-                       └──► generate_documents ──► parse_documents ──► create_vs_indexes ──┘
-provision_lakebase_app (independent)
+setup_catalog_schema ──┬──► provision_endpoints ─────────────────────────────────────────────┐
+                       │                                                                       │
+                       ├──► generate_kpi_data ──► create_uc_functions                         │
+                       │                                                                       │
+                       └──► generate_documents ──► parse_documents ─────────────────┐         │
+                                                                                     ├──► create_vs_indexes
+provision_lakebase_app ───────────────────────────────────────────────────────────────┘
 ```
 
 | Task | Depends on | What it does |
@@ -196,7 +197,7 @@ provision_lakebase_app (independent)
 | `generate_kpi_data` | `setup_catalog_schema` | Generates 90-day synthetic KPI Delta tables (50 sites, 6 regions) |
 | `generate_documents` | `setup_catalog_schema` | Loads 23 telco docs from GitHub; falls back to Claude generation |
 | `parse_documents` | `generate_documents` | Chunks documents for Vector Search |
-| `create_vs_indexes` | `provision_endpoints` + `parse_documents` | Embeds chunks, creates 3 Delta Sync VS indexes |
+| `create_vs_indexes` | `provision_endpoints` + `parse_documents` + `provision_lakebase_app` | Embeds chunks, creates 3 Delta Sync VS indexes, then applies UC grants to app SP |
 | `create_uc_functions` | `generate_kpi_data` | Registers 5 UC SQL functions as agent tools |
 | `provision_lakebase_app` | — | Provisions Lakebase PostgreSQL + App compute; configures SP auth |
 
@@ -274,7 +275,7 @@ Recommended RAG smoke prompt:
 If the runbook query returns "No relevant runbook content found" but HTTP is `200`, treat it as a content/retrieval quality issue (not a deployment blocker).
 
 7) **Known recovery actions**
-- `USE CATALOG`/`USE SCHEMA`/`EXECUTE` errors: rerun `07_provision_lakebase_app` with correct `catalog` and `schema`.
+- `USE CATALOG`/`USE SCHEMA`/`EXECUTE` errors: rerun `04_create_vs_indexes` with correct `catalog`, `schema`, and `app_name`.
 - `403` on embedding/reranker endpoint: rerun `07_provision_lakebase_app` to reapply serving endpoint `CAN_QUERY` grants to the app SP.
 - Workspace mismatch during deploy: clear `.databricks/bundle/default` and redeploy.
 
@@ -367,7 +368,7 @@ All configuration is driven by environment variables (set in `databricks.yml` an
 The current accelerator defaults to **service-principal (M2M) permissioning** for app runtime access.
 
 - The app executes UC functions and Vector Search calls as the Databricks App service principal.
-- `notebooks/07_provision_lakebase_app.py` grants required UC permissions directly to that service principal for portability across workspaces.
+- `notebooks/04_create_vs_indexes.py` grants required UC permissions directly to that service principal after VS assets are created.
 - This avoids workspace-specific differences where IAM groups may not resolve as UC SQL principals.
 
 > Placeholder for future enhancement: add an optional **OBO (on-behalf-of) permissioning** mode so data access can be evaluated under the signed-in user identity instead of the app SP.

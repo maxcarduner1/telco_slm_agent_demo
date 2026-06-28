@@ -15,6 +15,7 @@ dbutils.widgets.text("catalog", "cmegdemos_catalog", "Catalog")
 dbutils.widgets.text("schema", "network_analytics_enablement", "Schema")
 dbutils.widgets.text("vs_endpoint", "demo_telco_vs_endpoint", "VS Endpoint Name")
 dbutils.widgets.text("embedding_endpoint", "otel-embedding2-300m", "Embedding Model Endpoint")
+dbutils.widgets.text("app_name", "otel-telco-agent", "Databricks App Name")
 
 # COMMAND ----------
 
@@ -22,6 +23,7 @@ catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
 vs_endpoint_name = dbutils.widgets.get("vs_endpoint")
 embedding_endpoint = dbutils.widgets.get("embedding_endpoint")
+app_name = dbutils.widgets.get("app_name")
 
 EMBEDDING_DIM = 768
 BATCH_SIZE = 32
@@ -30,6 +32,7 @@ print(f"Catalog: {catalog}")
 print(f"Schema: {schema}")
 print(f"VS Endpoint: {vs_endpoint_name}")
 print(f"Embedding Endpoint: {embedding_endpoint} (dim={EMBEDDING_DIM})")
+print(f"App Name: {app_name}")
 
 # COMMAND ----------
 
@@ -243,3 +246,35 @@ for idx_config in indexes:
 print("\nIndexes syncing in background. Check Compute > Vector Search in the UI.")
 print(f"\nAt query time, embed queries via '{embedding_endpoint}' and use:")
 print("  index.similarity_search(query_vector=embedding)")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Grant Unity Catalog access to App SP (post-index creation)
+
+# COMMAND ----------
+
+from databricks.sdk import WorkspaceClient
+
+w = WorkspaceClient()
+app_info = w.apps.get(name=app_name)
+app_sp_client_id = app_info.service_principal_client_id
+
+if not app_sp_client_id:
+    raise RuntimeError(f"Could not resolve service principal client id for app '{app_name}'")
+
+# UC grants are applied after assets are created so routine/table targets exist.
+# TODO: Optional future enhancement — support OBO/user-delegated permissioning.
+quoted_schema = f"`{catalog}`.`{schema}`"
+uc_statements = [
+    f"GRANT USE CATALOG ON CATALOG `{catalog}` TO `{app_sp_client_id}`",
+    f"GRANT USE SCHEMA ON SCHEMA {quoted_schema} TO `{app_sp_client_id}`",
+    f"GRANT EXECUTE ON SCHEMA {quoted_schema} TO `{app_sp_client_id}`",
+    f"GRANT SELECT ON TABLE {quoted_schema}.`otel_runbooks_vs_index` TO `{app_sp_client_id}`",
+    f"GRANT SELECT ON TABLE {quoted_schema}.`otel_standards_vs_index` TO `{app_sp_client_id}`",
+    f"GRANT SELECT ON TABLE {quoted_schema}.`otel_incidents_vs_index` TO `{app_sp_client_id}`",
+]
+
+for stmt in uc_statements:
+    spark.sql(stmt)
+    print(f"Applied UC grant: {stmt}")
