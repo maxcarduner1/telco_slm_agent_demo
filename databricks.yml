@@ -128,6 +128,8 @@ resources:
             base_parameters:
               project_id: "telco-slm-agent-memory"
               app_name: "otel-telco-agent"
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
           environment_key: serverless_lakebase
 
   apps:

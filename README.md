@@ -296,6 +296,18 @@ All configuration is driven by environment variables (set in `databricks.yml` an
 
 ---
 
+## Permissioning Model
+
+The current accelerator defaults to **service-principal (M2M) permissioning** for app runtime access.
+
+- The app executes UC functions and Vector Search calls as the Databricks App service principal.
+- `notebooks/07_provision_lakebase_app.py` grants required UC permissions directly to that service principal for portability across workspaces.
+- This avoids workspace-specific differences where IAM groups may not resolve as UC SQL principals.
+
+> Placeholder for future enhancement: add an optional **OBO (on-behalf-of) permissioning** mode so data access can be evaluated under the signed-in user identity instead of the app SP.
+
+---
+
 ## Development
 
 ### Local setup

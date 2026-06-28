@@ -17,6 +17,7 @@
 dbutils.widgets.text("project_id",          "telco-slm-agent-memory", "Lakebase Project ID")
 dbutils.widgets.text("app_name",            "otel-telco-agent",       "App Name")
 dbutils.widgets.text("catalog",             "",                        "UC Catalog (for SP USE CATALOG grant)")
+dbutils.widgets.text("schema",              "otel_rag_agent_demo",    "UC Schema (for SP grants)")
 dbutils.widgets.text("embedding_endpoint",  "otel-embedding2-300m",   "Embedding Serving Endpoint")
 dbutils.widgets.text("reranker_endpoint",   "otel-reranker-600m",     "Reranker Serving Endpoint")
 dbutils.widgets.text("llm_endpoint",        "otel-llm-1b-it",         "LLM Serving Endpoint")
@@ -29,6 +30,8 @@ from databricks.sdk import WorkspaceClient
 
 project_id         = dbutils.widgets.get("project_id")         or "telco-slm-agent-memory"
 app_name           = dbutils.widgets.get("app_name")           or "otel-telco-agent"
+catalog            = (dbutils.widgets.get("catalog") or "").strip()
+schema             = (dbutils.widgets.get("schema") or "otel_rag_agent_demo").strip()
 embedding_endpoint = dbutils.widgets.get("embedding_endpoint") or "otel-embedding2-300m"
 reranker_endpoint  = dbutils.widgets.get("reranker_endpoint")  or "otel-reranker-600m"
 llm_endpoint       = dbutils.widgets.get("llm_endpoint")       or "otel-llm-1b-it"
@@ -43,6 +46,8 @@ def api(method, path, body=None, query=None):
 
 print(f"Project : {project_id}")
 print(f"App     : {app_name}")
+print(f"Catalog : {catalog or '(missing)'}")
+print(f"Schema  : {schema}")
 
 # COMMAND ----------
 
@@ -410,6 +415,43 @@ else:
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## 6. Grant Unity Catalog access directly to App SP
+
+# COMMAND ----------
+
+# UC grants are issued directly to the App service principal client ID because
+# not all workspaces resolve IAM groups as UC SQL principals consistently.
+# TODO: Optional future enhancement — support OBO/user-delegated permissioning.
+if app_sp_client_id:
+    if not catalog:
+        raise ValueError(
+            "Widget 'catalog' is required for UC grants in notebook 07."
+        )
+
+    target_principal = app_sp_client_id
+    fq_schema = f"{catalog}.{schema}"
+    quoted_schema = f"`{catalog}`.`{schema}`"
+    uc_statements = [
+        f"GRANT USE CATALOG ON CATALOG `{catalog}` TO `{target_principal}`",
+        f"GRANT USE SCHEMA ON SCHEMA {quoted_schema} TO `{target_principal}`",
+        f"GRANT EXECUTE ON SCHEMA {quoted_schema} TO `{target_principal}`",
+        f"GRANT SELECT ON TABLE {quoted_schema}.`otel_runbooks_vs_index` TO `{target_principal}`",
+        f"GRANT SELECT ON TABLE {quoted_schema}.`otel_standards_vs_index` TO `{target_principal}`",
+        f"GRANT SELECT ON TABLE {quoted_schema}.`otel_incidents_vs_index` TO `{target_principal}`",
+    ]
+
+    for stmt in uc_statements:
+        try:
+            spark.sql(stmt)
+            print(f"Applied UC grant: {stmt}")
+        except Exception as e:
+            raise RuntimeError(f"Failed UC grant '{stmt}': {e}") from e
+else:
+    print("WARNING: No App SP client id — skipping UC grants")
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Summary
 
 # COMMAND ----------
@@ -427,6 +469,10 @@ print(f"  URL            : {app_url}")
 print()
 print(f"App SP group     : {group_name}")
 print(f"  Lakebase       : CAN_USE  on '{project_id}'")
+if catalog:
+    print(f"  UC Catalog     : USE CATALOG on '{catalog}' (granted to SP '{app_sp_client_id}')")
+print(f"  UC Schema      : USE+EXECUTE on '{catalog}.{schema}' (granted to SP '{app_sp_client_id}')")
+print(f"  UC VS Tables   : SELECT on otel_*_vs_index tables in '{catalog}.{schema}'")
 for _ep in [embedding_endpoint, reranker_endpoint, llm_endpoint]:
     if _ep.strip():
         print(f"  Serving EP     : CAN_QUERY on '{_ep}'")
