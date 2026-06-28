@@ -215,6 +215,72 @@ properly resolved. The app URL is printed on completion.
 databricks apps get otel-telco-agent
 ```
 
+### Coding Agent Runbook (New Workspace First Try)
+
+Use this exact sequence when deploying into a different FEVM workspace:
+
+1) **Preflight auth + target**
+- Confirm CLI profile resolves and token is valid.
+- Confirm `variables.catalog`, `variables.schema`, and `warehouse_id` match the target workspace.
+
+2) **Reset local bundle state when switching workspaces**
+- Local bundle state can retain a previous workspace ID.
+- If changing workspaces, clear local state before deploy:
+
+```bash
+rm -rf .databricks/bundle/default
+```
+
+3) **Deploy bundle with explicit vars**
+
+```bash
+databricks bundle deploy --profile <profile> \
+  --var="catalog=<uc_catalog>" \
+  --var="schema=<uc_schema>" \
+  --var="warehouse_id=<warehouse_id>"
+```
+
+4) **Run full setup job**
+
+```bash
+databricks bundle run data_setup --profile <profile> \
+  --var="catalog=<uc_catalog>" \
+  --var="schema=<uc_schema>" \
+  --var="warehouse_id=<warehouse_id>"
+```
+
+5) **Deploy/start app**
+
+```bash
+databricks bundle run telco_agent --profile <profile> \
+  --var="catalog=<uc_catalog>" \
+  --var="schema=<uc_schema>" \
+  --var="warehouse_id=<warehouse_id>"
+databricks apps get otel-telco-agent --profile <profile>
+```
+
+6) **Smoke test `/invocations`**
+- KPI prompt (no tool failure)
+- SQL tool prompt (`get_kpi_metrics` / `compare_regions`)
+- RAG prompt (`search_runbooks`)
+
+Recommended KPI smoke prompts:
+- `List one telecom KPI we monitor.`
+- `Show dropped call rate by region for last 24 hours.`
+
+Recommended RAG smoke prompt:
+- `Find runbook guidance for high dropped call rate and summarize two steps.`
+
+If the runbook query returns "No relevant runbook content found" but HTTP is `200`, treat it as a content/retrieval quality issue (not a deployment blocker).
+
+7) **Known recovery actions**
+- `USE CATALOG`/`USE SCHEMA`/`EXECUTE` errors: rerun `07_provision_lakebase_app` with correct `catalog` and `schema`.
+- `403` on embedding/reranker endpoint: rerun `07_provision_lakebase_app` to reapply serving endpoint `CAN_QUERY` grants to the app SP.
+- Workspace mismatch during deploy: clear `.databricks/bundle/default` and redeploy.
+
+Current default permission model is **SP-based (M2M)** with direct UC grants to the app service principal.  
+Placeholder remains for future **OBO** mode if user-delegated permissions are required.
+
 ### Repairing a failed run
 
 If a multi-task job fails partway through, repair from the failure point rather than re-running from scratch:
