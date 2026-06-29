@@ -8,10 +8,13 @@ import logging
 import os
 import re
 import requests
-from typing import Optional
+import json
+import csv
+import io
+import time
+from typing import Any, Optional
 
 from langchain_core.tools import tool
-from databricks_langchain import UCFunctionToolkit
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -19,24 +22,234 @@ logger = logging.getLogger(__name__)
 # Configuration — all required, no hardcoded defaults
 CATALOG            = os.environ["UC_CATALOG"]
 SCHEMA             = os.environ["UC_SCHEMA"]
+WAREHOUSE_ID       = os.environ["DATABRICKS_WAREHOUSE_ID"]
 VS_ENDPOINT        = os.environ.get("VS_ENDPOINT", "demo_telco_vs_endpoint")
 EMBEDDING_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT", "otel-embedding2-300m")
 EMBEDDING_DIM = 768
+MAX_UC_RESULT_ROWS = int(os.environ.get("MAX_UC_RESULT_ROWS", "60"))
+MAX_UC_RESULT_CHARS = int(os.environ.get("MAX_UC_RESULT_CHARS", "12000"))
+
+
+def _coerce_bool(value: Any) -> bool:
+    """Normalize model-generated bool-ish values."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "t", "1", "yes"}:
+            return True
+        if normalized in {"false", "f", "0", "no"}:
+            return False
+    return bool(value)
+
+
+def _sql_literal(value: Any) -> str:
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, (int, float)):
+        return str(value)
+    escaped = str(value).replace("'", "''")
+    return f"'{escaped}'"
+
+
+def _csv_result(columns: list[str], rows: list[list[Any]], truncated: bool) -> str:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(columns)
+    writer.writerows(rows[:MAX_UC_RESULT_ROWS])
+    return _compact_tool_output(
+        json.dumps(
+            {
+                "format": "CSV",
+                "value": buffer.getvalue(),
+                "truncated": truncated,
+            }
+        )
+    )
+
+
+def _compact_csv_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    value = payload.get("value")
+    if payload.get("format") != "CSV" or not isinstance(value, str):
+        return payload
+
+    rows = value.splitlines()
+    if len(rows) <= MAX_UC_RESULT_ROWS + 1:
+        return payload
+
+    compacted = dict(payload)
+    kept_rows = rows[: MAX_UC_RESULT_ROWS + 1]
+    compacted["value"] = "\n".join(kept_rows) + "\n"
+    compacted["truncated"] = True
+    compacted["truncated_note"] = (
+        f"Returned first {MAX_UC_RESULT_ROWS} data rows out of {len(rows) - 1}. "
+        "Ask for a narrower filter or an aggregate view for more detail."
+    )
+    return compacted
+
+
+def _compact_tool_output(output: Any) -> str:
+    """Bound tool output size before it is added to model history."""
+    text = output if isinstance(output, str) else json.dumps(output)
+
+    try:
+        parsed = json.loads(text)
+    except Exception:
+        parsed = None
+
+    if isinstance(parsed, dict):
+        parsed = _compact_csv_payload(parsed)
+        text = json.dumps(parsed)
+
+    if len(text) <= MAX_UC_RESULT_CHARS:
+        return text
+
+    return (
+        text[:MAX_UC_RESULT_CHARS]
+        + f"\n\n[truncated to {MAX_UC_RESULT_CHARS} characters; ask for a narrower filter or aggregate.]"
+    )
+
+
+def _run_sql(statement: str) -> dict[str, Any]:
+    wc = WorkspaceClient()
+    response = wc.api_client.do(
+        "POST",
+        "/api/2.0/sql/statements",
+        body={
+            "statement": statement,
+            "warehouse_id": WAREHOUSE_ID,
+            "wait_timeout": "30s",
+            "format": "JSON_ARRAY",
+        },
+    )
+    statement_id = response.get("statement_id")
+    for _ in range(30):
+        status = response.get("status", {})
+        state = status.get("state")
+        if state == "SUCCEEDED":
+            return response
+        if state in {"FAILED", "CANCELED", "CLOSED"}:
+            error = status.get("error", {})
+            raise RuntimeError(error.get("message") or f"SQL statement {state}")
+        if not statement_id:
+            raise RuntimeError(f"SQL statement did not return an id: {response}")
+        time.sleep(1)
+        response = wc.api_client.do(
+            "GET",
+            f"/api/2.0/sql/statements/{statement_id}",
+        )
+    raise TimeoutError(f"SQL statement did not finish within 60s: {statement_id}")
+
+
+def _call_uc_function(function_name: str, args: list[Any]) -> str:
+    fqn = f"`{CATALOG}`.`{SCHEMA}`.`{function_name}`"
+    args_sql = ", ".join(_sql_literal(arg) for arg in args)
+    limit = MAX_UC_RESULT_ROWS + 1
+    statement = f"SELECT * FROM {fqn}({args_sql}) LIMIT {limit}"
+    response = _run_sql(statement)
+    manifest = response.get("manifest", {})
+    schema = manifest.get("schema", {})
+    columns = [col.get("name", f"col_{i}") for i, col in enumerate(schema.get("columns", []))]
+    rows = response.get("result", {}).get("data_array", [])
+    truncated = len(rows) > MAX_UC_RESULT_ROWS
+    return _csv_result(columns, rows, truncated)
 
 
 def get_uc_function_tools():
-    """Load UC functions as LangGraph tools via UCFunctionToolkit."""
-    toolkit = UCFunctionToolkit(
-        warehouse_id=os.environ["DATABRICKS_WAREHOUSE_ID"],
-        function_names=[
-            f"{CATALOG}.{SCHEMA}.get_kpi_metrics",
-            f"{CATALOG}.{SCHEMA}.get_threshold_breaches",
-            f"{CATALOG}.{SCHEMA}.compare_regions",
-            f"{CATALOG}.{SCHEMA}.get_network_events",
-            f"{CATALOG}.{SCHEMA}.get_churn_risk",
+    """Return UC SQL function tools with app-side arg normalization."""
+    return [
+        get_kpi_metrics,
+        get_threshold_breaches,
+        compare_regions,
+        get_network_events,
+        get_churn_risk,
+    ]
+
+
+@tool
+def get_kpi_metrics(
+    metric_name: str,
+    region: Optional[str] = None,
+    site_id: Optional[str] = None,
+    hours_back: int = 168,
+) -> str:
+    """Query raw KPI rows for a metric, optionally filtered by region/site.
+
+    Prefer aggregate tools such as compare_regions or get_threshold_breaches for
+    broad questions. Use this when the user asks for row-level detail or after
+    narrowing to a specific region, site, metric, and time window.
+    """
+    return _call_uc_function("get_kpi_metrics", [metric_name, region, site_id, hours_back])
+
+
+@tool
+def get_threshold_breaches(
+    metric_name: str,
+    threshold: float,
+    direction: str = "above",
+    region: Optional[str] = None,
+    hours_back: int = 168,
+) -> str:
+    """Find KPI readings above or below a threshold.
+
+    Prefer this over raw KPI rows when investigating whether there are issues,
+    violations, or problematic sites.
+    """
+    return _call_uc_function(
+        "get_threshold_breaches",
+        [metric_name, threshold, direction, region, hours_back],
+    )
+
+
+@tool
+def compare_regions(
+    metric_name: str,
+    hours_back: int = 168,
+    agg: str = "avg",
+) -> str:
+    """Compare a KPI metric across all regions with an aggregation.
+
+    Prefer this for broad regional or fleet-wide questions before requesting
+    raw KPI rows.
+    """
+    return _call_uc_function("compare_regions", [metric_name, hours_back, agg])
+
+
+@tool
+def get_network_events(
+    region: Optional[str] = None,
+    severity: Optional[str] = None,
+    event_type: Optional[str] = None,
+    hours_back: int = 168,
+    unresolved_only: Any = False,
+) -> str:
+    """Query network events by region, severity, event type, and resolution state."""
+    return _call_uc_function(
+        "get_network_events",
+        [
+            region,
+            severity,
+            event_type,
+            hours_back,
+            _coerce_bool(unresolved_only),
         ],
     )
-    return toolkit.tools
+
+
+@tool
+def get_churn_risk(
+    region: Optional[str] = None,
+    segment: Optional[str] = None,
+    min_churn_rate: float = 0.0,
+    days_back: int = 30,
+) -> str:
+    """Query customer churn risk by region and segment."""
+    return _call_uc_function(
+        "get_churn_risk",
+        [region, segment, min_churn_rate, days_back],
+    )
 
 
 def _embed_query(text: str) -> list[float]:

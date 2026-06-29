@@ -12,6 +12,7 @@ import os
 import time
 from typing import Any, AsyncGenerator
 
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.base import Checkpoint, CheckpointMetadata
 
 try:
@@ -45,6 +46,8 @@ if mlflow is not None:
     mlflow.langchain.autolog()
 
 LLM_ENDPOINT = os.environ.get("LLM_ENDPOINT", "databricks-claude-sonnet-4")
+MAX_MODEL_HISTORY_MESSAGES = int(os.environ.get("MAX_MODEL_HISTORY_MESSAGES", "18"))
+MAX_SUMMARY_SOURCE_MESSAGES = int(os.environ.get("MAX_SUMMARY_SOURCE_MESSAGES", "16"))
 
 # Initialize config (may be None if Lakebase is not configured)
 try:
@@ -62,9 +65,75 @@ def create_telco_agent(checkpointer=None, store=None):
         model=model,
         tools=tools,
         prompt=SYSTEM_PROMPT,
+        pre_model_hook=_compact_model_history,
         checkpointer=checkpointer,
         store=store,
     )
+
+
+def _message_excerpt(msg: Any, max_chars: int = 220) -> str:
+    content = getattr(msg, "content", "")
+    if not isinstance(content, str):
+        try:
+            content = json.dumps(content)
+        except Exception:
+            content = str(content)
+    content = " ".join(content.split())
+    return content[:max_chars] + ("..." if len(content) > max_chars else "")
+
+
+def _summarize_older_messages(messages: list[Any]) -> SystemMessage | None:
+    if not messages:
+        return None
+
+    lines = [
+        "Earlier conversation summary (compacted to protect the context window):"
+    ]
+    summarized = 0
+    for msg in messages:
+        if summarized >= MAX_SUMMARY_SOURCE_MESSAGES:
+            break
+        if isinstance(msg, HumanMessage):
+            lines.append(f"- User: {_message_excerpt(msg)}")
+            summarized += 1
+        elif isinstance(msg, AIMessage) and not getattr(msg, "tool_calls", None):
+            lines.append(f"- Assistant: {_message_excerpt(msg)}")
+            summarized += 1
+
+    if summarized == 0:
+        return None
+    if len(messages) > summarized:
+        lines.append(f"- Additional older tool/detail messages omitted: {len(messages) - summarized}.")
+    return SystemMessage(content="\n".join(lines))
+
+
+def _safe_recent_boundary(messages: list[Any], start: int) -> int:
+    """Avoid starting model input with an orphan ToolMessage."""
+    while start > 0 and isinstance(messages[start], ToolMessage):
+        start -= 1
+    return start
+
+
+def _compact_model_history(state: dict[str, Any]) -> dict[str, Any]:
+    """Bound model input while preserving full checkpoint state in Lakebase."""
+    messages = list(state.get("messages", []))
+    if len(messages) <= MAX_MODEL_HISTORY_MESSAGES:
+        return {"llm_input_messages": messages}
+
+    start = _safe_recent_boundary(
+        messages,
+        max(0, len(messages) - MAX_MODEL_HISTORY_MESSAGES),
+    )
+    older = messages[:start]
+    recent = messages[start:]
+    summary = _summarize_older_messages(older)
+    compacted = ([summary] if summary else []) + recent
+    logger.info(
+        "Compacted model input history from %s to %s messages",
+        len(messages),
+        len(compacted),
+    )
+    return {"llm_input_messages": compacted}
 
 
 def _get_thread_id(request: ResponsesAgentRequest) -> str:
