@@ -1,0 +1,19 @@
+classifier: |
+  Categorize the following customer support ticket into exactly one of:
+  hardware, billing, account, other.
+
+  Respond with only the category name, nothing else.
+
+  Ticket: {{ ticket }}
+
+  Category:
+
+responder: |
+  Draft a concise, helpful reply to the ticket below. The ticket has been
+  categorized as {{ category }}; tailor the response accordingly. Acknowledge
+  the issue, give next steps where applicable, and avoid making promises about
+  liability or refunds beyond what's necessary.
+
+  Ticket: {{ ticket }}
+
+  Reply:

@@ -1,0 +1,14 @@
+gateway_endpoints:
+  translator:
+    smart_endpoint: "toy-translator-endpoint"
+    initial_model: "databricks-gpt-5-4-nano"
+    candidate_models:
+      - "databricks-llama-4-maverick"
+      - "databricks-claude-haiku-4-5"
+      - "databricks-gpt-5-4-mini"
+      - "databricks-gpt-5-4-nano"
+      - "databricks-gemini-3-1-flash-lite"
+    description: "Translates text into the target language."
+
+prompt_registry:
+  translator: "smart_model_upgrades.prompts.toy_translator"

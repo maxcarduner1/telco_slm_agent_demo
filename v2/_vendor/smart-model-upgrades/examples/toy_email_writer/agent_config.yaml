@@ -1,0 +1,22 @@
+gateway_endpoints:
+  subject_writer:
+    smart_endpoint: "toy-email-subject"
+    initial_model: "databricks-gpt-5-4-nano"
+    candidate_models:
+      - "databricks-gpt-5-4-nano"
+      - "databricks-claude-haiku-4-5"
+      - "databricks-gpt-5-4-mini"
+    description: "Writes a concise email subject line for the given topic and recipient."
+  body_writer:
+    smart_endpoint: "toy-email-body"
+    initial_model: "databricks-gpt-5-4-nano"
+    candidate_models:
+      - "databricks-claude-sonnet-4-6"
+      - "databricks-gpt-5-4-mini"
+      - "databricks-llama-4-maverick"
+      - "databricks-gemini-3-1-flash-lite"
+    description: "Writes a polite email body for the given topic and recipient."
+
+prompt_registry:
+  subject_writer: "smart_model_upgrades.prompts.toy_email_subject"
+  body_writer: "smart_model_upgrades.prompts.toy_email_body"

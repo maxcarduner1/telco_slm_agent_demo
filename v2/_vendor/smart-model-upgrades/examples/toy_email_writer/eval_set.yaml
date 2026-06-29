@@ -1,0 +1,244 @@
+# Hard email cases. Each row requires balancing competing tones (delivering
+# bad news while preserving the relationship), translating across audience
+# expertise levels, or hitting specific structural requirements. expected_answer
+# encodes specific must-haves, must-NOTs, and tonal constraints that an LLM with
+# a thin "write a polite email" prompt will routinely fail.
+
+- recipient: "a long-time vendor whose contract is being terminated"
+  topic: "ending the relationship after seven years because of pricing changes, while keeping the door open for future work"
+  expected_answer: |
+    Subject line referencing contract conclusion / change in partnership.
+    Body must (1) acknowledge the seven-year history with specific gratitude
+    (not generic), (2) state the termination decision clearly without
+    burying it, (3) name pricing as the reason without blaming, (4) leave
+    the door open for future opportunities, (5) hit a professional-warm
+    register. Must NOT be cold/transactional, evasive about the reason, or
+    over-apologetic to the point of seeming unsure.
+
+- recipient: "an employee being placed on a performance improvement plan"
+  topic: "informing them they are being placed on a 60-day PIP citing missed deadlines on the Q3 launch and quality issues on three customer escalations"
+  expected_answer: |
+    Subject line that does not soften the seriousness ('Performance Improvement
+    Plan' or similar; not 'Quick chat' or 'Check-in'). Body must (1) state the
+    PIP decision in the first paragraph, (2) cite the two specific factual
+    grounds (Q3 launch deadlines, three customer escalations), (3) state the
+    60-day duration, (4) signal HR/manager support without being saccharine,
+    (5) close with next-step logistics. Must NOT bury the decision, use HR
+    euphemisms that obscure the action, or mix in praise that contradicts the
+    message.
+
+- recipient: "a customer demanding a refund the company will not provide"
+  topic: "denying a refund request for a non-refundable product purchased six weeks ago, while offering a 25% discount on a future order as a goodwill gesture"
+  expected_answer: |
+    Subject line referencing the refund request decision. Body must (1) state
+    the denial clearly without burying it, (2) reference the non-refundable
+    policy, (3) acknowledge the customer's frustration without conceding the
+    point, (4) offer the 25% future-order discount as the goodwill gesture,
+    (5) avoid both grovelling and corporate detachment. Must NOT use weasel
+    phrases like 'unfortunately our hands are tied' or imply the policy might
+    change.
+
+- recipient: "a non-technical executive sponsor"
+  topic: "explaining that the database migration is delayed two weeks because the previous team's schema lacks foreign-key constraints and the data validation failures cannot be auto-resolved"
+  expected_answer: |
+    Subject line about migration timeline / delay. Body must (1) lead with the
+    business-relevant fact (two-week delay), not the technical detail, (2)
+    explain WHY in language an exec understands without dumbing it down
+    insultingly (analogies acceptable; avoid 'foreign-key constraints' and
+    'schema' as bare terms), (3) state what is being done about it, (4) offer
+    a concrete revised date or check-in time. Must NOT lead with technical
+    jargon, must NOT minimize ('just a small delay'), must NOT be overly
+    apologetic.
+
+- recipient: "the team after a layoff was just announced"
+  topic: "acknowledging that 12 people on the team were let go this morning, addressing the people remaining, without minimizing the impact"
+  expected_answer: |
+    Subject line directly naming the situation (not 'team update'). Body must
+    (1) name the layoff and its scale (12 people) explicitly, (2) acknowledge
+    the human impact without performing grief, (3) avoid corporate-speak like
+    'rightsizing' / 'streamlining', (4) signal what comes next for the
+    remaining team, (5) offer a concrete way to talk (1:1, town hall, etc.).
+    Must NOT pivot quickly to business continuity, must NOT use any
+    dehumanizing euphemism.
+
+- recipient: "a reviewer who wrote a publicly negative review citing factual inaccuracies"
+  topic: "responding to a review that contains two factually wrong claims (that the product lacks SSO support, and that support response time exceeds 72 hours) while remaining respectful of the reviewer's overall negative experience"
+  expected_answer: |
+    Subject line that signals a measured response (not defensive or
+    confrontational). Body must (1) thank the reviewer for the feedback
+    without sounding sarcastic, (2) acknowledge the parts of their experience
+    that may be valid, (3) factually correct the two specific inaccuracies
+    (SSO IS supported, support SLA is X hours), (4) invite them to revisit or
+    contact directly, (5) hit a calm professional register. Must NOT be
+    defensive, must NOT correct without first acknowledging.
+
+- recipient: "an academic collaborator whose draft has methodological problems"
+  topic: "telling a co-author that their statistical analysis section needs significant rework before the paper can be submitted, specifically that the regression model omits two confounders and the sample size is underpowered for the claimed subgroup analyses"
+  expected_answer: |
+    Subject line referencing the draft / analysis. Body must (1) frame as
+    collaborative not adversarial, (2) identify the two specific
+    methodological issues (omitted confounders, underpowered subgroup
+    analyses) precisely enough to be actionable, (3) propose a path forward
+    (rework / additional data / scaled-back claims), (4) preserve the
+    co-authorship working relationship. Must NOT be vague ('the methods
+    section needs work'), must NOT undermine the colleague's competence.
+
+- recipient: "a board member who has been overstepping into operational decisions"
+  topic: "respectfully but firmly establishing that day-to-day staffing decisions are within the CEO's authority, not the board's, while preserving the working relationship"
+  expected_answer: |
+    Subject line referencing roles / governance. Body must (1) acknowledge
+    the board member's engagement positively, (2) clearly draw the line
+    between board oversight and CEO operational authority, (3) cite the
+    specific instance(s) without making it personal, (4) offer a constructive
+    forum for ongoing input (board meetings, formal reviews), (5) close
+    warmly. Must NOT be passive-aggressive, must NOT capitulate, must NOT
+    escalate to ultimatum.
+
+- recipient: "a senior open-source maintainer reviewing your contributor PR"
+  topic: "respectfully pushing back on requested changes that you believe will introduce a regression, with specific reasoning about why your original implementation correctly handles a concurrency edge case the maintainer's suggestion misses"
+  expected_answer: |
+    Subject line referencing the PR / discussion. Body must (1) acknowledge
+    the reviewer's expertise and time, (2) make the technical case for the
+    original implementation specifically referencing the concurrency edge
+    case, (3) explain why the suggested change would regress that case,
+    (4) remain open to alternative solutions, (5) hit a respectful
+    contributor-to-maintainer register. Must NOT be deferential to the point
+    of capitulating, must NOT be defensive or condescending.
+
+- recipient: "a venture capital investor who passed on the seed round"
+  topic: "responding to a 'we've decided to pass' email — keeping the relationship warm for future rounds without seeming desperate or sycophantic"
+  expected_answer: |
+    Subject line that's warm and forward-looking. Body must (1) thank the
+    investor genuinely (not effusively), (2) acknowledge the decision without
+    pleading or arguing, (3) ask one specific concrete thing (intro to a
+    relevant LP, feedback on a specific concern, etc.), (4) leave a future
+    opening for the next round, (5) keep it brief — no more than 4 short
+    paragraphs. Must NOT be pleading, must NOT argue the decision, must NOT
+    be longer than necessary.
+
+- recipient: "a junior employee whose project you are taking over"
+  topic: "telling a junior team member that you are taking over the integration project they have been leading for three months because timelines have shifted and senior ownership is now needed, while not undermining their growth"
+  expected_answer: |
+    Subject line about the project transition. Body must (1) name the
+    decision directly without minimizing it ('I'm taking over X'), (2)
+    explain the reason as a function of timelines / scope rather than their
+    competence, (3) explicitly preserve their role on the project (specific
+    new responsibilities), (4) acknowledge the work they've done with
+    specifics, (5) offer a 1:1 to discuss further. Must NOT frame it as
+    'support' when it's a takeover, must NOT use vague reasons, must NOT
+    inflate the praise to compensate.
+
+- recipient: "a public relations contact during a security incident"
+  topic: "drafting a customer-facing announcement about a data breach that exposed email addresses but no passwords, while legal review is still pending — must be written so PR can hold it for legal sign-off without major rewrites"
+  expected_answer: |
+    Subject line that signals a security notification clearly. Body must
+    (1) state the breach occurred plainly, (2) state precisely what was
+    exposed (email addresses) and what was NOT (passwords, financial info),
+    (3) describe the action being taken, (4) describe what the recipient
+    should do (or not need to do), (5) provide a contact channel.
+    Must NOT speculate beyond confirmed facts, must NOT use minimizing
+    language ('a small issue'), must NOT make claims that haven't cleared
+    legal (no specific liability statements, no SLA commitments).
+
+- recipient: "a customer threatening to file a complaint with a regulator"
+  topic: "addressing a customer who has threatened to file a complaint with the FTC over a billing dispute, where the customer is partially correct about an overcharge but has misunderstood the contract terms — needs to acknowledge what's right, correct what's wrong, and de-escalate"
+  expected_answer: |
+    Subject line conveying engagement with their complaint, not dismissiveness.
+    Body must (1) acknowledge the legitimate part of their complaint (the
+    overcharge), (2) state how that part will be remedied with specifics,
+    (3) clarify the contract misunderstanding factually without lecturing,
+    (4) avoid any language that escalates the regulator threat, (5) close
+    with a direct contact and timeline. Must NOT capitulate on the parts
+    that aren't valid, must NOT be defensive about the parts that are.
+
+- recipient: "a journalist asking for an off-the-record quote on a sensitive topic"
+  topic: "declining to provide an off-the-record quote about a competitor's recent failure, while keeping the journalist as a useful contact for future positive coverage"
+  expected_answer: |
+    Subject line referencing their request and a clear non-yes. Body must
+    (1) thank them for thinking of you, (2) clearly decline to comment on
+    the competitor without speculating about why, (3) avoid trash-talking the
+    competitor explicitly OR implicitly (no 'we don't comment on companies in
+    that situation'), (4) offer something forward-looking (an upcoming
+    announcement, a different topic you'd be willing to discuss), (5) keep
+    the relationship warm. Must NOT comment on the competitor, must NOT
+    seem evasive about why you're declining.
+
+- recipient: "an academic department chair declining a tenure-track candidate"
+  topic: "rejecting a tenure-track candidate after a fly-out visit where the search committee was unanimous, while preserving the candidate's dignity and not closing the door on future engagement (e.g. as a postdoc collaborator)"
+  expected_answer: |
+    Subject line that signals a decision (not 'thanks for visiting'). Body
+    must (1) state the decision clearly in the first paragraph, (2) avoid
+    listing reasons (legally risky), (3) sincerely acknowledge specific
+    strengths shown during the fly-out, (4) leave a non-fake door open for
+    future collaboration if appropriate, (5) hit a formal-warm register.
+    Must NOT enumerate weaknesses, must NOT mention 'fit' as a reason,
+    must NOT use boilerplate that erases the specific candidate.
+
+- recipient: "a cofounder you are firing"
+  topic: "telling a cofounder of three years that the board has decided to remove them from operations, with severance and equity terms attached"
+  expected_answer: |
+    Subject line that conveys gravity without being theatrical (not 'urgent'
+    or 'we need to talk'). Body must (1) state the decision and that the
+    board has made it, (2) acknowledge the three-year history specifically
+    and not generically, (3) reference the severance and equity terms as
+    attachments / forthcoming, (4) propose immediate next steps (handoff,
+    announcement timing), (5) hit a respectful register that does not
+    pretend this is a mutual decision. Must NOT use HR-speak, must NOT mix
+    praise that contradicts the decision, must NOT bury the decision.
+
+- recipient: "a senior engineer you've been mentoring who applied for a promotion and didn't get it"
+  topic: "delivering the news that a senior engineer you've been mentoring did not get the staff promotion they applied for, citing specific feedback (scope of impact and cross-team influence) that they need to develop, while keeping them motivated"
+  expected_answer: |
+    Subject line about the promotion decision. Body must (1) state the
+    decision plainly without burying it, (2) deliver the specific factual
+    feedback (scope of impact + cross-team influence) actionably, not
+    abstractly, (3) avoid generic 'you'll get there next time' language,
+    (4) propose 1-2 concrete next steps, (5) close with continued
+    investment in their growth. Must NOT euphemize the rejection, must
+    NOT lecture, must NOT make it sound like a soft yes.
+
+- recipient: "a top customer whose renewal is at risk"
+  topic: "responding to a top customer who has expressed dissatisfaction in their last QBR and is shopping competitors, where the renewal is in 90 days and worth $2M ARR"
+  expected_answer: |
+    Subject line conveying engagement and partnership (not panic). Body must
+    (1) acknowledge their concerns without dismissing, (2) name a specific
+    item from the last QBR to show you were listening, (3) propose a concrete
+    action (executive sponsor meeting, technical deep-dive, on-site, etc.),
+    (4) avoid mentioning competitors or the renewal date directly, (5) hit a
+    confident-but-humble register. Must NOT sound desperate, must NOT
+    discount-bait, must NOT make commitments that aren't yours to make.
+
+- recipient: "a foreign government counterpart"
+  topic: "delivering a diplomatic protest about a recent customs detention of a citizen at the border, while not damaging the broader bilateral relationship"
+  expected_answer: |
+    Subject line in formal diplomatic register (not 'urgent' or 'about your
+    border'). Body must (1) reference the specific incident factually with
+    date / location / individual identifier, (2) lodge the formal protest
+    in measured diplomatic language, (3) cite the relevant treaty / consular
+    convention, (4) request a specific remedial action (release, access,
+    etc.), (5) close with affirmation of the broader bilateral relationship.
+    Must NOT be casual, must NOT escalate language beyond what the situation
+    warrants, must NOT mix in unrelated grievances.
+
+- recipient: "a parent dealing with a custody-related school decision"
+  topic: "telling a divorced parent that their child cannot be released to them today because the custody schedule on file specifies the other parent has Wednesdays, requiring tact given the parent's clearly distressed state"
+  expected_answer: |
+    Subject line that's calm and informational (not legalistic). Body must
+    (1) acknowledge the parent's situation with empathy, (2) state the policy
+    decision plainly with the specific reason (custody schedule on file),
+    (3) avoid any implication of judgment about the family situation,
+    (4) describe the path to resolve (update on file, mediation through the
+    other parent, etc.), (5) provide a school-side contact. Must NOT lecture,
+    must NOT be coldly bureaucratic, must NOT promise exceptions that aren't
+    yours to grant.
+
+- recipient: "an investor on the cap table during a down round"
+  topic: "informing an early angel investor that the next round will be priced 60% below their cost basis and that their pro rata participation is welcome but they will be diluted if they don't participate"
+  expected_answer: |
+    Subject line referencing the upcoming round (not buried). Body must
+    (1) state the situation directly: down round at 60% below their cost
+    basis, (2) explain the strategic rationale briefly without sugar-coating,
+    (3) describe their pro-rata option specifically, (4) describe dilution
+    consequences if they don't participate, (5) close with a 1:1 offer to
+    discuss. Must NOT minimize the down round, must NOT pressure into
+    participation, must NOT obscure the dilution math.

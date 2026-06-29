@@ -1,0 +1,37 @@
+# =============================================================================
+# HotpotQA Agent Config
+# =============================================================================
+# One LLM call behind one AI Gateway endpoint. Used to demonstrate that the
+# optimization loop is agent-agnostic -- swap in any agent by providing a
+# config + a predict_fn.
+# =============================================================================
+
+# --- AI Gateway Endpoints ---------------------------------------------------
+# smart_endpoint:   the V2 gateway endpoint name the agent calls (stable).
+# initial_model:    the FMAPI destination the gateway routes to at startup.
+#                   GEPA swaps this destination in-loop during optimization.
+# candidate_models: the FMAPI model pool GEPA explores for this endpoint.
+gateway_endpoints:
+  endpoint:
+    smart_endpoint: "hotpotqa-smart-endpoint"
+    initial_model: "databricks-claude-sonnet-4-5"
+    candidate_models:
+      - "databricks-claude-sonnet-4-5"
+      - "databricks-claude-sonnet-4-6"
+      - "databricks-gpt-5-4-mini"
+      - "databricks-gpt-5-4-nano"
+      - "databricks-llama-4-maverick"
+      - "databricks-gemini-3-1-flash-lite"
+    description: >
+      Multi-hop QA over 10 retrieved documents. Returns the minimal answer
+      string (entity, number, date, yes/no) grounded in the provided context.
+
+# --- Prompt Registry --------------------------------------------------------
+prompt_registry:
+  endpoint: "smart_model_upgrades.prompts.hotpotqa_qa"
+
+# --- Test Example -----------------------------------------------------------
+input_example:
+  input:
+    - role: "user"
+      content: "Question: Which publishing company has published Bizarre and a sister publication devoted to the anomalous phenomena popularised by Charles Fort?"

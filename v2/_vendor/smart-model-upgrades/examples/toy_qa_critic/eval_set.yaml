@@ -1,0 +1,65 @@
+- question: "What is the capital of Australia?"
+  expected_answer: "Canberra. Should not say Sydney or Melbourne."
+
+- question: "Who wrote the novel '1984'?"
+  expected_answer: "George Orwell (pen name of Eric Arthur Blair)."
+
+- question: "What is the chemical symbol for gold?"
+  expected_answer: "Au."
+
+- question: "How many continents are there?"
+  expected_answer: "Seven (Africa, Antarctica, Asia, Australia/Oceania, Europe, North America, South America)."
+
+- question: "What year did the Berlin Wall fall?"
+  expected_answer: "1989. Should mention November 9, 1989, if specific."
+
+- question: "What is the largest planet in our solar system?"
+  expected_answer: "Jupiter."
+
+- question: "Who painted the Mona Lisa?"
+  expected_answer: "Leonardo da Vinci."
+
+- question: "What is the speed of light in a vacuum, approximately?"
+  expected_answer: "Approximately 299,792 kilometers per second (or roughly 300,000 km/s, or 186,000 miles per second)."
+
+- question: "What language has the most native speakers worldwide?"
+  expected_answer: "Mandarin Chinese."
+
+- question: "What is the powerhouse of the cell?"
+  expected_answer: "The mitochondrion (or mitochondria)."
+
+- question: "Which Shakespeare play features the characters Rosencrantz and Guildenstern?"
+  expected_answer: "Hamlet."
+
+- question: "What is the longest river in the world?"
+  expected_answer: "The Nile is most commonly cited; the Amazon is sometimes argued to be longer. Either answer with brief context is acceptable."
+
+- question: "Who developed the theory of general relativity?"
+  expected_answer: "Albert Einstein."
+
+- question: "What is the smallest country in the world by area?"
+  expected_answer: "Vatican City."
+
+- question: "What gas do plants absorb from the atmosphere for photosynthesis?"
+  expected_answer: "Carbon dioxide (CO2)."
+
+- question: "Which ocean is the deepest?"
+  expected_answer: "The Pacific Ocean (the Mariana Trench)."
+
+- question: "What is the boiling point of water at sea level in Celsius?"
+  expected_answer: "100 degrees Celsius (at standard atmospheric pressure)."
+
+- question: "Who was the first person to walk on the Moon?"
+  expected_answer: "Neil Armstrong, in 1969 during Apollo 11."
+
+- question: "What is the currency of Japan?"
+  expected_answer: "The Japanese yen (JPY, ¥)."
+
+- question: "Which element has the atomic number 1?"
+  expected_answer: "Hydrogen (H)."
+
+- question: "How many bones are in the adult human body?"
+  expected_answer: "206."
+
+- question: "What is the largest desert in the world?"
+  expected_answer: "Antarctica (a polar desert) is the largest by area; the Sahara is the largest hot desert. Either answer with brief context is acceptable."

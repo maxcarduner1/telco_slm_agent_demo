@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "smart-model-upgrades"
+version = "0.1.0"
+description = "Auto-discover the best model+prompt per LLM call in agentic apps, via AI Gateway + GEPA."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mlflow>=3.11.0",
+    "gepa>=0.0.26",
+    "databricks-sdk",
+    "pyyaml",
+    "jinja2",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-mock",
+    "openai",                  # required to test transparent endpoint routing
+]
+# Runtime deps for the reference agents under examples/.
+# Customers running their own agent install only what their agent needs.
+demos = [
+    "databricks-openai",       # toys + hotpotqa
+    "databricks-langchain",    # wanderbricks (ChatDatabricks for scorers)
+    "langchain-openai",        # wanderbricks (ChatOpenAI for V2 gateway routing)
+    "langgraph>=1.1",          # wanderbricks + support_agent
+    "langgraph-prebuilt>=1.0.13",
+    "langchain-core",          # wanderbricks
+    "litellm",                 # gepa reflection_lm via databricks/<model>
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["smart_model_upgrades"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
