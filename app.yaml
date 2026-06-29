@@ -17,8 +17,8 @@ env:
     value: "databricks"
   - name: MLFLOW_REGISTRY_URI
     value: "databricks-uc"
-  - name: MLFLOW_EXPERIMENT_ID
-    value: "2739016681902822"
+  - name: MLFLOW_EXPERIMENT_NAME
+    value: "/Shared/otel-telco-agent-traces"
   - name: LAKEBASE_AUTOSCALING_PROJECT
     value: "telco-slm-agent-memory"
   - name: LAKEBASE_AUTOSCALING_BRANCH

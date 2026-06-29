@@ -1,0 +1,81 @@
+# =============================================================================
+# WanderBricks Agent Config
+# =============================================================================
+# Each LLM call maps to its own AI Gateway endpoint for independent optimization.
+# =============================================================================
+
+# --- AI Gateway Endpoints ---------------------------------------------------
+# smart_endpoint:   the V2 gateway endpoint name the agent calls (stable).
+# initial_model:    the FMAPI destination the gateway routes to at startup.
+#                   GEPA swaps this destination in-loop during optimization.
+# candidate_models: the FMAPI model pool GEPA explores for this endpoint.
+gateway_endpoints:
+  # Supervisor: routes between workers + writes the final response.
+  # Optimized for routing accuracy, latency, AND response quality.
+  supervisor:
+    smart_endpoint: "wanderbricks-supervisor_up_to_date"
+    initial_model: "databricks-gpt-5"
+    candidate_models:
+      - "databricks-claude-sonnet-4-6"
+      - "databricks-claude-opus-4-7"
+      - "databricks-gpt-5-4-mini"
+      - "databricks-llama-4-maverick"
+    description: >
+      Decides next step (query DB, get weather, or finish) and produces the
+      final user-facing answer when enough data is gathered.
+
+  query_rewriter:
+    smart_endpoint: "wanderbricks-query-rewriter_up_to_date"
+    initial_model: "databricks-gpt-5-mini"
+    candidate_models:
+      - "databricks-claude-haiku-4-5"
+      - "databricks-gpt-5-4-nano"
+      - "databricks-llama-4-maverick"
+    description: >
+      Rewrites natural language into a precise query for the Genie SQL agent.
+      Must extract dates, constraints, and intent.
+
+  enrichment:
+    smart_endpoint: "wanderbricks-enrichment_up_to_date"
+    initial_model: "databricks-gpt-5-mini"
+    candidate_models:
+      - "databricks-claude-sonnet-4-6"
+      - "databricks-gpt-5-4-mini"
+      - "databricks-llama-4-maverick"
+    description: >
+      Calls weather tools to fetch forecast data for travel destinations.
+      Standard tool-calling agent (bind_tools + ToolNode pattern).
+
+# --- Graph Settings ---------------------------------------------------------
+enrichment_recursion_limit: 10
+max_worker_rounds: 4
+
+# --- Databricks Resources ---------------------------------------------------
+databricks_resources:
+  genie_space_id: "01f12952e7671a22afeaba9391881072"
+  warehouse_id: "dd43ee29fedd958d"
+
+# --- Genie Tables (for MLflow resource logging) -----------------------------
+genie_tables:
+  - "samples.wanderbricks.amenities"
+  - "samples.wanderbricks.bookings"
+  - "samples.wanderbricks.clickstream"
+  - "samples.wanderbricks.countries"
+  - "samples.wanderbricks.destinations"
+  - "samples.wanderbricks.hosts"
+  - "samples.wanderbricks.payments"
+  - "samples.wanderbricks.properties"
+  - "samples.wanderbricks.reviews"
+  - "samples.wanderbricks.users"
+
+# --- Prompt Registry --------------------------------------------------------
+prompt_registry:
+  supervisor: "smart_model_upgrades.prompts.wanderbricks_supervisor_up_to_date"
+  query_rewriter: "smart_model_upgrades.prompts.wanderbricks_query_rewriter_up_to_date"
+  enrichment: "smart_model_upgrades.prompts.wanderbricks_enrichment_up_to_date"
+
+# --- Test Examples ----------------------------------------------------------
+input_example:
+  input:
+    - role: "user"
+      content: "Find me a place in Paris for 2 people, under $150/night, in August 2026"

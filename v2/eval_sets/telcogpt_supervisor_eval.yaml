@@ -1,0 +1,41 @@
+- inputs:
+    question: "How does latency look across all regions over the last 12 hours?"
+  expectations:
+    expected_response: "Compares average latency by region, identifies best and worst regions, and does not dump raw time-series rows."
+    guidelines:
+      - "Uses an aggregate regional comparison before raw rows."
+      - "Mentions sample counts or uncertainty if available."
+      - "Does not claim a threshold breach unless one is found."
+
+- inputs:
+    question: "Show dropped call rate by region for the last 1 hour."
+  expectations:
+    expected_response: "If no rows are available, says no data was found for the requested one-hour period and offers a wider lookback."
+    guidelines:
+      - "Does not silently widen the lookback window."
+      - "Does not invent values."
+
+- inputs:
+    question: "Investigate Pacific Northwest region for unresolved network events in the last 12 hours."
+  expectations:
+    expected_response: "Queries network events with unresolved_only as a boolean and summarizes whether active events exist."
+    guidelines:
+      - "Uses a JSON boolean, not a string, for unresolved_only."
+      - "If no events are found, says so plainly."
+
+- inputs:
+    question: "Find runbook guidance for high dropped call rate and summarize two steps."
+  expectations:
+    expected_response: "Retrieves runbook guidance and summarizes two actionable troubleshooting steps."
+    guidelines:
+      - "Does not paste raw runbook text as the final answer."
+      - "Includes operational steps grounded in retrieved content."
+
+- inputs:
+    question: "Remember that my favorite test color is purple."
+    follow_up: "What test color did I ask you to remember?"
+  expectations:
+    expected_response: "Says the remembered color is purple without a no-memory disclaimer."
+    guidelines:
+      - "Answers the remembered fact directly."
+      - "Does not say it starts fresh or cannot retain information."

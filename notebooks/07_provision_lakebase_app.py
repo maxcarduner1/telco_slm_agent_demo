@@ -16,6 +16,7 @@
 
 dbutils.widgets.text("project_id",          "telco-slm-agent-memory", "Lakebase Project ID")
 dbutils.widgets.text("app_name",            "otel-telco-agent",       "App Name")
+dbutils.widgets.text("memory_schema",       "agent_memory",           "Lakebase memory schema")
 dbutils.widgets.text("embedding_endpoint",  "otel-embedding2-300m",   "Embedding Serving Endpoint")
 dbutils.widgets.text("reranker_endpoint",   "otel-reranker-600m",     "Reranker Serving Endpoint")
 dbutils.widgets.text("llm_endpoint",        "otel-llm-1b-it",         "LLM Serving Endpoint")
@@ -28,6 +29,7 @@ from databricks.sdk import WorkspaceClient
 
 project_id         = dbutils.widgets.get("project_id")         or "telco-slm-agent-memory"
 app_name           = dbutils.widgets.get("app_name")           or "otel-telco-agent"
+memory_schema      = dbutils.widgets.get("memory_schema")      or "agent_memory"
 embedding_endpoint = dbutils.widgets.get("embedding_endpoint") or "otel-embedding2-300m"
 reranker_endpoint  = dbutils.widgets.get("reranker_endpoint")  or "otel-reranker-600m"
 llm_endpoint       = dbutils.widgets.get("llm_endpoint")       or "otel-llm-1b-it"
@@ -42,6 +44,7 @@ def api(method, path, body=None, query=None):
 
 print(f"Project : {project_id}")
 print(f"App     : {app_name}")
+print(f"Schema  : {memory_schema}")
 
 # COMMAND ----------
 
@@ -161,6 +164,15 @@ conn = psycopg2.connect(host=pg_host, port=5432, dbname="agent_memory",
                         user=user_email, password=pg_token, sslmode="require")
 conn.autocommit = True
 cur = conn.cursor()
+
+# Required by AsyncDatabricksStore for vector-backed long-term memory.
+# The vector type must be visible in the configured memory schema search path.
+try:
+    cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{memory_schema}"')
+    cur.execute(f'CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA "{memory_schema}"')
+    print(f"  Extension ready: {memory_schema}.vector")
+except Exception as e:
+    print(f"  WARNING: Could not create vector extension: {e}")
 
 cur.execute("""
 CREATE TABLE IF NOT EXISTS conversations (
@@ -326,6 +338,24 @@ if app_sp_id:
         print(f"  Created Lakebase OAuth role for SP '{app_sp_client_id}' with databricks_superuser")
     else:
         print(f"  Lakebase OAuth role already exists for SP '{app_sp_client_id}'")
+
+    try:
+        conn = psycopg2.connect(host=pg_host, port=5432, dbname="agent_memory",
+                                user=user_email, password=pg_token, sslmode="require")
+        conn.autocommit = True
+        cur = conn.cursor()
+        cur.execute(
+            f'ALTER ROLE "{app_sp_client_id}" IN DATABASE agent_memory '
+            f'SET search_path = "{memory_schema}", agent_memory, public'
+        )
+        cur.close()
+        conn.close()
+        print(
+            f"  Set Lakebase search_path for SP '{app_sp_client_id}' "
+            f"to '{memory_schema}, agent_memory, public'"
+        )
+    except Exception as e:
+        print(f"  WARNING: Could not set Lakebase search_path for SP '{app_sp_client_id}': {e}")
 else:
     print("WARNING: Could not retrieve App SP id — skipping group membership")
 

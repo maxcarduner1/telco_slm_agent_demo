@@ -1,0 +1,37 @@
+# V2.0 evaluate-only job sketch.
+# Copy this into databricks.yml resources.jobs or a separate DAB target when
+# ready to run optimizer jobs from the workspace.
+resources:
+  jobs:
+    telcogpt_v2_smart_model_upgrade:
+      name: "telcogpt-v2-smart-model-upgrade"
+      tasks:
+        - task_key: setup_prompt_registry
+          notebook_task:
+            notebook_path: ./v2/notebooks/00_setup_prompt_registry.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              prompt_name: "telcogpt_v2_supervisor"
+
+        - task_key: setup_gateway
+          notebook_task:
+            notebook_path: ./v2/notebooks/01_setup_gateway_endpoints.py
+            base_parameters:
+              supervisor_gateway: "telcogpt-v2-supervisor"
+              initial_model: "databricks-claude-sonnet-4"
+              candidate_model: "databricks-claude-haiku-4-5"
+
+        - task_key: run_evaluate_only_optimizer
+          depends_on:
+            - task_key: setup_prompt_registry
+            - task_key: setup_gateway
+          notebook_task:
+            notebook_path: ./v2/notebooks/02_run_smart_model_upgrade.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              warehouse_id: "${var.warehouse_id}"
+              supervisor_gateway: "telcogpt-v2-supervisor"
+              candidate_model: "databricks-claude-haiku-4-5"
+              max_metric_calls: "30"

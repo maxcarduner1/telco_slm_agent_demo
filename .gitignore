@@ -10,3 +10,15 @@ __pycache__/
 *.pdf
 to-do.md
 instructions.md
+.python-version
+.venv-local/
+mlflow.db
+mlruns/
+app_v2/e2e-chatbot-app-next/node_modules/
+app_v2/e2e-chatbot-app-next/.next/
+app_v2/e2e-chatbot-app-next/dist/
+app_v2/**/__pycache__/
+app_v2/**/*.pyc
+v2/**/__pycache__/
+v2/**/*.pyc
+v2/_vendor/smart-model-upgrades/.git/
