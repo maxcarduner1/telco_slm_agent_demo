@@ -58,9 +58,20 @@ for stmt in uc_statements:
 
 if prompt_name.strip():
     prompt_fqn = f"{catalog}.{schema}.{prompt_name.strip()}"
+    prompt_schema_grants = [
+        f"GRANT CREATE FUNCTION ON SCHEMA {quoted_schema} TO `{app_sp_client_id}`",
+        f"GRANT MANAGE ON SCHEMA {quoted_schema} TO `{app_sp_client_id}`",
+    ]
+    for stmt in prompt_schema_grants:
+        try:
+            spark.sql(stmt)
+            print(f"Applied prompt schema grant: {stmt}")
+        except Exception as e:
+            print(f"WARNING: Could not apply prompt schema grant '{stmt}': {e}")
+
     prompt_grants = [
-        f"GRANT EXECUTE ON MODEL `{prompt_fqn}` TO `{app_sp_client_id}`",
-        f"GRANT SELECT ON MODEL `{prompt_fqn}` TO `{app_sp_client_id}`",
+        f"GRANT EXECUTE ON MODEL `{catalog}`.`{schema}`.`{prompt_name.strip()}` TO `{app_sp_client_id}`",
+        f"GRANT SELECT ON MODEL `{catalog}`.`{schema}`.`{prompt_name.strip()}` TO `{app_sp_client_id}`",
     ]
     for stmt in prompt_grants:
         try:

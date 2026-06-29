@@ -338,6 +338,24 @@ if app_sp_id:
         print(f"  Created Lakebase OAuth role for SP '{app_sp_client_id}' with databricks_superuser")
     else:
         print(f"  Lakebase OAuth role already exists for SP '{app_sp_client_id}'")
+
+    try:
+        conn = psycopg2.connect(host=pg_host, port=5432, dbname="agent_memory",
+                                user=user_email, password=pg_token, sslmode="require")
+        conn.autocommit = True
+        cur = conn.cursor()
+        cur.execute(
+            f'ALTER ROLE "{app_sp_client_id}" IN DATABASE agent_memory '
+            f'SET search_path = "{memory_schema}", agent_memory, public'
+        )
+        cur.close()
+        conn.close()
+        print(
+            f"  Set Lakebase search_path for SP '{app_sp_client_id}' "
+            f"to '{memory_schema}, agent_memory, public'"
+        )
+    except Exception as e:
+        print(f"  WARNING: Could not set Lakebase search_path for SP '{app_sp_client_id}': {e}")
 else:
     print("WARNING: Could not retrieve App SP id — skipping group membership")
 
