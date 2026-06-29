@@ -28,6 +28,12 @@ resources:
         - environment_key: serverless_default
           spec:
             client: "5"
+        - environment_key: serverless_control_plane
+          spec:
+            client: "5"
+            dependencies:
+              - pyyaml
+              - requests
         - environment_key: serverless_vs
           spec:
             client: "5"
@@ -130,6 +136,26 @@ resources:
               app_name: "otel-telco-agent"
           environment_key: serverless_lakebase
 
+        - task_key: setup_prompt_registry
+          notebook_task:
+            notebook_path: ./notebooks/09_setup_prompt_registry.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              prompt_name: "telcogpt_supervisor"
+              prompt_file: "prompts/supervisor.yaml"
+          depends_on:
+            - task_key: setup_catalog_schema
+          environment_key: serverless_control_plane
+
+        - task_key: setup_gateway
+          notebook_task:
+            notebook_path: ./notebooks/10_setup_gateway_endpoint.py
+            base_parameters:
+              supervisor_gateway: "telcogpt-supervisor"
+              initial_model: "databricks-claude-sonnet-4"
+          environment_key: serverless_control_plane
+
         - task_key: grant_app_uc_permissions
           notebook_task:
             notebook_path: ./notebooks/08_grant_app_uc_permissions.py
@@ -137,10 +163,17 @@ resources:
               catalog: "${var.catalog}"
               schema: "${var.schema}"
               app_name: "otel-telco-agent"
+              prompt_name: "telcogpt_supervisor"
+              ai_gateway_endpoint: "telcogpt-supervisor"
+              embedding_endpoint: "otel-embedding2-300m"
+              reranker_endpoint: "otel-reranker-600m"
+              vs_endpoint: "demo_telco_vs_endpoint"
           depends_on:
             - task_key: create_uc_functions
             - task_key: create_vs_indexes
             - task_key: provision_lakebase_app
+            - task_key: setup_prompt_registry
+            - task_key: setup_gateway
           environment_key: serverless_default
 
   apps:
@@ -164,9 +197,13 @@ resources:
           - name: LAKEBASE_AGENT_MEMORY_SCHEMA
             value: "agent_memory"
           - name: LLM_ENDPOINT
-            value: "databricks-claude-sonnet-4"
+            value: "telcogpt-supervisor"
+          - name: SUPERVISOR_PROMPT_URI
+            value: "prompts:/${var.catalog}.${var.schema}.telcogpt_supervisor@production"
           - name: EMBEDDING_ENDPOINT
             value: "otel-embedding2-300m"
+          - name: EMBEDDING_TIMEOUT_SECONDS
+            value: "90"
           - name: VS_ENDPOINT
             value: "demo_telco_vs_endpoint"
           - name: UC_CATALOG
@@ -179,38 +216,3 @@ resources:
         - user_name: "max.carduner@databricks.com"
           level: "CAN_MANAGE"
 
-    telco_agent_v2:
-      name: "otel-telco-agent-v2"
-      description: "TelcoGPT V2 app using AI Gateway + Prompt Registry supervisor"
-      source_code_path: ./app_v2
-      config:
-        env:
-          - name: MLFLOW_TRACKING_URI
-            value: "databricks"
-          - name: MLFLOW_REGISTRY_URI
-            value: "databricks-uc"
-          - name: MLFLOW_EXPERIMENT_NAME
-            value: "/Shared/telcogpt-v2-app-traces"
-          - name: LAKEBASE_AUTOSCALING_PROJECT
-            value: "telco-slm-agent-memory"
-          - name: LAKEBASE_AUTOSCALING_BRANCH
-            value: "production"
-          - name: LAKEBASE_AGENT_MEMORY_SCHEMA
-            value: "agent_memory_v2"
-          - name: LLM_ENDPOINT
-            value: "telcogpt-v2-supervisor"
-          - name: SUPERVISOR_PROMPT_URI
-            value: "prompts:/${var.catalog}.${var.schema}.telcogpt_v2_supervisor@production"
-          - name: EMBEDDING_ENDPOINT
-            value: "otel-embedding2-300m"
-          - name: VS_ENDPOINT
-            value: "demo_telco_vs_endpoint"
-          - name: UC_CATALOG
-            value: "${var.catalog}"
-          - name: UC_SCHEMA
-            value: "${var.schema}"
-          - name: DATABRICKS_WAREHOUSE_ID
-            value: "${var.warehouse_id}"
-      permissions:
-        - user_name: "max.carduner@databricks.com"
-          level: "CAN_MANAGE"

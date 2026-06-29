@@ -78,6 +78,21 @@ def init_lakebase_config() -> LakebaseConfig:
 @asynccontextmanager
 async def lakebase_context(config: LakebaseConfig):
     """Context manager that yields (checkpointer, store) connected to Lakebase."""
+    # Non-default schemas may not have the pgvector extension in their search
+    # path. Keep checkpointing enabled, but only enable semantic long-term
+    # memory indexing for the default V1 schema until per-schema pgvector is
+    # fully validated.
+    store_embedding_endpoint = (
+        config.embedding_endpoint
+        if config.memory_schema in (None, "agent_memory")
+        else None
+    )
+    store_embedding_dims = (
+        config.embedding_dims
+        if store_embedding_endpoint is not None
+        else None
+    )
+
     async with AsyncCheckpointSaver(
         autoscaling_endpoint=config.autoscaling_endpoint,
         project=config.autoscaling_project,
@@ -87,8 +102,8 @@ async def lakebase_context(config: LakebaseConfig):
         autoscaling_endpoint=config.autoscaling_endpoint,
         project=config.autoscaling_project,
         branch=config.autoscaling_branch,
-        embedding_endpoint=config.embedding_endpoint,
-        embedding_dims=config.embedding_dims,
+        embedding_endpoint=store_embedding_endpoint,
+        embedding_dims=store_embedding_dims,
         schema=config.memory_schema,
     ) as store:
         yield checkpointer, store

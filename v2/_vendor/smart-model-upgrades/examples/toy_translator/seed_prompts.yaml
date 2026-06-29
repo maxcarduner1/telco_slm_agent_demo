@@ -1,6 +1,0 @@
-translator: |
-  Translate the following text into {{ target_language }}.
-
-  Text: {{ text }}
-
-  Provide only the translation. Do not include explanations or commentary.

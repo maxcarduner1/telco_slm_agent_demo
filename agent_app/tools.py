@@ -25,6 +25,7 @@ SCHEMA             = os.environ["UC_SCHEMA"]
 WAREHOUSE_ID       = os.environ["DATABRICKS_WAREHOUSE_ID"]
 VS_ENDPOINT        = os.environ.get("VS_ENDPOINT", "demo_telco_vs_endpoint")
 EMBEDDING_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT", "otel-embedding2-300m")
+EMBEDDING_TIMEOUT_SECONDS = float(os.environ.get("EMBEDDING_TIMEOUT_SECONDS", "90"))
 EMBEDDING_DIM = 768
 MAX_UC_RESULT_ROWS = int(os.environ.get("MAX_UC_RESULT_ROWS", "60"))
 MAX_UC_RESULT_CHARS = int(os.environ.get("MAX_UC_RESULT_CHARS", "12000"))
@@ -260,7 +261,12 @@ def _embed_query(text: str) -> list[float]:
 
     url = f"{host}/serving-endpoints/{EMBEDDING_ENDPOINT}/invocations"
     headers = {"Authorization": auth_header, "Content-Type": "application/json"}
-    resp = requests.post(url, headers=headers, json={"input": [text]}, timeout=30)
+    resp = requests.post(
+        url,
+        headers=headers,
+        json={"input": [text]},
+        timeout=EMBEDDING_TIMEOUT_SECONDS,
+    )
     resp.raise_for_status()
 
     result = resp.json()

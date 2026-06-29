@@ -55,13 +55,19 @@ _ws_url = spark.conf.get("spark.databricks.workspaceUrl")
 _token = dbutils.notebook.entry_point.getDbutils().notebook().getContext().apiToken().get()
 
 
-def get_embeddings(texts, max_retries=3):
+def get_embeddings(texts, max_retries=5):
     """Call the OTel embedding endpoint. Returns list of 768-dim float arrays."""
     url = f"https://{_ws_url}/serving-endpoints/{embedding_endpoint}/invocations"
     headers = {"Authorization": f"Bearer {_token}", "Content-Type": "application/json"}
 
     for attempt in range(max_retries):
-        resp = requests.post(url, headers=headers, json={"input": texts}, timeout=120)
+        try:
+            resp = requests.post(url, headers=headers, json={"input": texts}, timeout=300)
+        except requests.exceptions.ReadTimeout:
+            wait_seconds = 2 ** attempt
+            print(f"  Embedding request timed out; retrying in {wait_seconds}s")
+            time.sleep(wait_seconds)
+            continue
         if resp.status_code == 200:
             result = resp.json()
             if isinstance(result, list):
@@ -198,7 +204,13 @@ for idx_config in indexes:
     try:
         existing = vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_name)
         print(f"Index {index_name} already exists. Syncing...")
-        existing.sync()
+        try:
+            existing.sync()
+        except Exception as e:
+            if "not ready" in str(e).lower():
+                print("  Index exists but is not ready yet — leaving background sync in progress")
+            else:
+                raise
         continue
     except Exception:
         pass
@@ -220,8 +232,14 @@ for idx_config in indexes:
         print(f"  Created: {index_name}")
     except Exception as e:
         if "already exists" in str(e).lower():
-            print(f"  Index already exists — skipping create, syncing instead")
-            vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_name).sync()
+            print("  Index already exists — skipping create, syncing if ready")
+            try:
+                vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_name).sync()
+            except Exception as sync_exc:
+                if "not ready" in str(sync_exc).lower():
+                    print("  Index exists but is not ready yet — leaving background sync in progress")
+                else:
+                    raise
         else:
             raise
 

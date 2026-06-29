@@ -59,7 +59,7 @@ except ValueError:
 def create_telco_agent(checkpointer=None, store=None):
     """Create the LangGraph telco agent."""
     model_kwargs: dict[str, Any] = {"endpoint": LLM_ENDPOINT}
-    if LLM_ENDPOINT.startswith("telcogpt-v2-"):
+    if LLM_ENDPOINT.startswith("telcogpt-"):
         model_kwargs["use_ai_gateway"] = True
     model = ChatDatabricks(**model_kwargs)
     tools = get_uc_function_tools() + get_rag_tools()

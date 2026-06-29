@@ -109,9 +109,9 @@ _PROMPT_CACHE: dict[str, str] = {}
 def get_supervisor_prompt() -> str:
     """Return the active supervisor prompt.
 
-    V1 uses the in-repo prompt. V2 can opt into MLflow Prompt Registry by
-    setting SUPERVISOR_PROMPT_URI, for example:
-    prompts:/cmegdemos_catalog.network_analytics_enablement.telcogpt_v2_supervisor@production
+    The app loads MLflow Prompt Registry when SUPERVISOR_PROMPT_URI is set,
+    for example:
+    prompts:/cmegdemos_catalog.network_analytics_enablement.telcogpt_supervisor@production
     """
     prompt_uri = os.environ.get("SUPERVISOR_PROMPT_URI", "").strip()
     if not prompt_uri:
@@ -123,6 +123,9 @@ def get_supervisor_prompt() -> str:
     try:
         import mlflow
 
+        registry_uri = os.environ.get("MLFLOW_REGISTRY_URI", "databricks-uc")
+        if registry_uri:
+            mlflow.set_registry_uri(registry_uri)
         prompt_version = mlflow.genai.load_prompt(prompt_uri)
         prompt = prompt_version.format()
         _PROMPT_CACHE[prompt_uri] = prompt
