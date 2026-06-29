@@ -6,7 +6,7 @@
 
 ## What Is TelcoGPT?
 
-TelcoGPT is a production-ready agentic AI assistant for telecom network operations, built entirely on Databricks. It gives network operations teams a conversational interface for answering three classes of questions:
+TelcoGPT is a solution accelerator for an agentic AI assistant for telecom network operations, built entirely on Databricks. It gives network operations teams a conversational interface for answering three classes of questions:
 
 - **"How is my network right now?"** — Live KPI health summaries with threshold flags
 - **"What's causing this degradation?"** — AI-synthesized root cause analysis combining live data with historical incidents and runbooks
