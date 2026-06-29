@@ -61,6 +61,45 @@ This repository is a **solution accelerator for a TelcoGPT proof-of-concept (POC
  (KPI Data)
 ```
 
+### V2 Smart Model Upgrades Architecture
+
+V2 runs side-by-side with V1 and uses isolated `telcogpt-v2-*` resources so the
+live V1 app, endpoints, Vector Search indexes, and Lakebase project are not
+repointed by optimizer experiments.
+
+```text
+Databricks App V1
+  otel-telco-agent
+  LLM_ENDPOINT=databricks-claude-sonnet-4
+
+Databricks App V2
+  otel-telco-agent-v2
+  LLM_ENDPOINT=telcogpt-v2-supervisor
+  SUPERVISOR_PROMPT_URI=prompts:/<catalog>.<schema>.telcogpt_v2_supervisor@production
+
+V2 control plane
+  v2/notebooks/00_setup_prompt_registry.py
+    -> registers telcogpt_v2_supervisor prompt
+  v2/notebooks/01_setup_gateway_endpoints.py
+    -> creates telcogpt-v2-supervisor AI Gateway endpoint
+  v2/notebooks/02_run_smart_model_upgrade.py
+    -> evaluate-only Smart Model Upgrades run
+```
+
+V2.0 is intentionally evaluate-only. The optimizer may identify better prompt
+or model candidates, but it does not call `promote_to_prod`. Promotion and
+rollback guardrails are deferred to a later release.
+
+Current V2 resource names:
+
+| Resource | Name |
+|----------|------|
+| V2 app | `otel-telco-agent-v2` |
+| V2 AI Gateway endpoint | `telcogpt-v2-supervisor` |
+| V2 prompt | `<catalog>.<schema>.telcogpt_v2_supervisor` |
+| V2 app traces | `/Shared/telcogpt-v2-app-traces` |
+| V2 optimizer experiment | `/Shared/telcogpt-v2-smart-model-upgrades` |
+
 ### OTel SLM Stack
 
 All RAG operations use HuggingFace OTel models (Apache 2.0, trained on 326K+ telecom samples):
@@ -97,7 +136,8 @@ Otel_SLM_Agent_Demo/
 │   ├── 04_create_vs_indexes.py       # Vector Search indexes with OTel-Embedding-335M
 │   ├── 05_create_uc_functions.py     # UC SQL functions as agent tools
 │   ├── 06_test_uc_functions.py       # Validate UC function outputs
-│   └── 07_provision_lakebase_app.py  # Lakebase memory + App compute provisioning
+│   ├── 07_provision_lakebase_app.py  # Lakebase memory + App compute provisioning
+│   └── 08_grant_app_uc_permissions.py # App SP grants for UC functions/indexes/prompts
 ├── docs/                             # Pre-generated telco documents (committed to repo)
 │   ├── runbooks/                     # 10 operational runbooks
 │   ├── standards/                    # 5 standards summaries (3GPP, O-RAN)
@@ -109,6 +149,8 @@ Otel_SLM_Agent_Demo/
 │   ├── prompts.py                    # TelcoGPT system prompt
 │   └── memory.py                     # Lakebase checkpointing + long-term store
 ├── e2e-chatbot-app-next/             # React + Express.js chat UI (full-stack)
+├── app_v2/                           # V2 app source path wrapper for side-by-side app deployment
+├── v2/                               # Smart Model Upgrades V2 assets (prompts, evals, notebooks)
 ├── scripts/
 │   ├── start_app.py                  # Start the chat application
 │   ├── deploy_app.py                 # Utility script to deploy Databricks App source

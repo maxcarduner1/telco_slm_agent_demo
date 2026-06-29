@@ -100,19 +100,16 @@ resources:
             - task_key: generate_documents
           environment_key: serverless_default
 
-        # 04 depends on 00 (endpoint live), 03 (parsed docs ready), and 07
-        # (App SP available) so UC grants can run after assets are created.
+        # 04 depends on 00 (endpoint live) and 03 (parsed docs ready).
         - task_key: create_vs_indexes
           notebook_task:
             notebook_path: ./notebooks/04_create_vs_indexes.py
             base_parameters:
               catalog: "${var.catalog}"
               schema: "${var.schema}"
-              app_name: "otel-telco-agent"
           depends_on:
             - task_key: provision_endpoints
             - task_key: parse_documents
-            - task_key: provision_lakebase_app
           environment_key: serverless_vs
 
         - task_key: create_uc_functions
@@ -132,6 +129,19 @@ resources:
               project_id: "telco-slm-agent-memory"
               app_name: "otel-telco-agent"
           environment_key: serverless_lakebase
+
+        - task_key: grant_app_uc_permissions
+          notebook_task:
+            notebook_path: ./notebooks/08_grant_app_uc_permissions.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              app_name: "otel-telco-agent"
+          depends_on:
+            - task_key: create_uc_functions
+            - task_key: create_vs_indexes
+            - task_key: provision_lakebase_app
+          environment_key: serverless_default
 
   apps:
     telco_agent:
@@ -155,6 +165,42 @@ resources:
             value: "agent_memory"
           - name: LLM_ENDPOINT
             value: "databricks-claude-sonnet-4"
+          - name: EMBEDDING_ENDPOINT
+            value: "otel-embedding2-300m"
+          - name: VS_ENDPOINT
+            value: "demo_telco_vs_endpoint"
+          - name: UC_CATALOG
+            value: "${var.catalog}"
+          - name: UC_SCHEMA
+            value: "${var.schema}"
+          - name: DATABRICKS_WAREHOUSE_ID
+            value: "${var.warehouse_id}"
+      permissions:
+        - user_name: "max.carduner@databricks.com"
+          level: "CAN_MANAGE"
+
+    telco_agent_v2:
+      name: "otel-telco-agent-v2"
+      description: "TelcoGPT V2 app using AI Gateway + Prompt Registry supervisor"
+      source_code_path: ./app_v2
+      config:
+        env:
+          - name: MLFLOW_TRACKING_URI
+            value: "databricks"
+          - name: MLFLOW_REGISTRY_URI
+            value: "databricks-uc"
+          - name: MLFLOW_EXPERIMENT_NAME
+            value: "/Shared/telcogpt-v2-app-traces"
+          - name: LAKEBASE_AUTOSCALING_PROJECT
+            value: "telco-slm-agent-memory"
+          - name: LAKEBASE_AUTOSCALING_BRANCH
+            value: "production"
+          - name: LAKEBASE_AGENT_MEMORY_SCHEMA
+            value: "agent_memory_v2"
+          - name: LLM_ENDPOINT
+            value: "telcogpt-v2-supervisor"
+          - name: SUPERVISOR_PROMPT_URI
+            value: "prompts:/${var.catalog}.${var.schema}.telcogpt_v2_supervisor@production"
           - name: EMBEDDING_ENDPOINT
             value: "otel-embedding2-300m"
           - name: VS_ENDPOINT
